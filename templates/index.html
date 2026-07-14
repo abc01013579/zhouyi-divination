@@ -11,6 +11,18 @@
     <h1>周易摇卦</h1>
     <p class="hint no-print">请依次输入六爻的数值（6、7、8 或 9），从初爻（第一爻）到上爻（第六爻）。</p>
 
+    <div class="coin-guide no-print">
+      <h3>如何摇卦：三枚硬币法</h3>
+      <p>准备三枚硬币，正面记 3 分，反面记 2 分。每一爻投掷三枚硬币一次，将三枚点数相加，得到该爻的数值：</p>
+      <ul>
+        <li><strong>6</strong> = 三个反面（老阴，变爻）</li>
+        <li><strong>7</strong> = 两反一正（少阳）</li>
+        <li><strong>8</strong> = 两正一反（少阴）</li>
+        <li><strong>9</strong> = 三个正面（老阳，变爻）</li>
+      </ul>
+      <p>从初爻（第一爻）摇到上爻（第六爻），共投掷六次，再将六个数值依次填入下方。</p>
+    </div>
+
     {% if error %}
       <p class="error">{{ error }}</p>
     {% endif %}

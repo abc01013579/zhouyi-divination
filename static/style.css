@@ -56,6 +56,37 @@ h1 {
   margin-bottom: 1.75rem;
 }
 
+.coin-guide {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.75rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.coin-guide h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.coin-guide ul {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.coin-guide li {
+  margin-bottom: 0.25rem;
+}
+
+.coin-guide p {
+  margin: 0.4rem 0;
+  color: var(--muted);
+}
+
 .error {
   color: var(--error);
   text-align: center;
