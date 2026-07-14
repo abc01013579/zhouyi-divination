@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>周易摇卦</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main>
+    <h1>周易摇卦</h1>
+    <p class="hint no-print">请依次输入六爻的数值（6、7、8 或 9），从初爻（第一爻）到上爻（第六爻）。</p>
+
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" class="yao-form no-print">
+      {% for i in range(1, 7) %}
+        <label>
+          第{{ i }}爻
+          <input
+            type="number"
+            name="yao{{ i }}"
+            min="6"
+            max="9"
+            required
+            value="{{ submitted[i - 1] if submitted else '' }}"
+          >
+        </label>
+      {% endfor %}
+      <button type="submit">起卦</button>
+    </form>
+
+    {% if result %}
+      <section class="result">
+        <button type="button" class="print-btn no-print" onclick="window.print()">打印卦象</button>
+        <div class="hexagram-pair">
+          <div class="hexagram">
+            <h2>本卦{% if result.original %}：{{ result.original.name }}{% endif %}</h2>
+            <div class="lines">
+              {% for bit in result.original_bits %}
+                <div class="line {{ 'yang' if bit == 1 else 'yin' }}"></div>
+              {% endfor %}
+            </div>
+            {% if result.original %}
+              <ul class="yao-text">
+                <li>{{ result.original.y01 }}</li>
+                <li>{{ result.original.y02 }}</li>
+                <li>{{ result.original.y03 }}</li>
+                <li>{{ result.original.y04 }}</li>
+                <li>{{ result.original.y05 }}</li>
+                <li>{{ result.original.y06 }}</li>
+              </ul>
+            {% endif %}
+          </div>
+
+          {% if result.has_change %}
+            <div class="hexagram">
+              <h2>变卦{% if result.changed %}：{{ result.changed.name }}{% endif %}</h2>
+              <div class="lines">
+                {% for bit in result.changed_bits %}
+                  <div class="line {{ 'yang' if bit == 1 else 'yin' }}"></div>
+                {% endfor %}
+              </div>
+              {% if result.changed %}
+                <ul class="yao-text">
+                  <li>{{ result.changed.y01 }}</li>
+                  <li>{{ result.changed.y02 }}</li>
+                  <li>{{ result.changed.y03 }}</li>
+                  <li>{{ result.changed.y04 }}</li>
+                  <li>{{ result.changed.y05 }}</li>
+                  <li>{{ result.changed.y06 }}</li>
+                </ul>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        {% if result.moving_text %}
+          <div class="moving-text">
+            <h3>爻辞</h3>
+            <p>{{ result.moving_text }}</p>
+          </div>
+        {% endif %}
+
+        {% if not result.has_change %}
+          <p class="no-change">无变爻，本卦即为最终卦。</p>
+        {% endif %}
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>
