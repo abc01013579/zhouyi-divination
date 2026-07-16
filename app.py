@@ -30,6 +30,7 @@ UI_STRINGS = {
         "error_range": "爻值必须是 6、7、8 或 9。",
         "lang_switch_label": "English",
         "lang_switch_target": "en",
+        "classics_link_label": "中华典籍",
     },
     "en": {
         "html_lang": "en",
@@ -54,6 +55,7 @@ UI_STRINGS = {
         "error_range": "Line values must be 6, 7, 8, or 9.",
         "lang_switch_label": "中文",
         "lang_switch_target": "zh",
+        "classics_link_label": "Chinese Classics",
     },
 }
 
