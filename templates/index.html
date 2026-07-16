@@ -1,26 +1,29 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="{{ t.html_lang }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>周易摇卦</title>
+  <title>{{ t.title }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <main>
-    <h1>周易摇卦</h1>
-    <p class="hint no-print">请依次输入六爻的数值（6、7、8 或 9），从初爻（第一爻）到上爻（第六爻）。</p>
+    <div class="lang-switch no-print">
+      <a href="?lang={{ t.lang_switch_target }}">{{ t.lang_switch_label }}</a>
+    </div>
+    <h1>{{ t.heading }}</h1>
+    <p class="hint no-print">{{ t.hint }}</p>
 
     <div class="coin-guide no-print">
-      <h3>如何摇卦：三枚硬币法</h3>
-      <p>准备三枚硬币，正面记 3 分，反面记 2 分。每一爻投掷三枚硬币一次，将三枚点数相加，得到该爻的数值：</p>
+      <h3>{{ t.coin_guide_title }}</h3>
+      <p>{{ t.coin_guide_intro }}</p>
       <ul>
-        <li><strong>6</strong> = 三个反面（老阴，变爻）</li>
-        <li><strong>7</strong> = 两反一正（少阳）</li>
-        <li><strong>8</strong> = 两正一反（少阴）</li>
-        <li><strong>9</strong> = 三个正面（老阳，变爻）</li>
+        <li>{{ t.coin_6 }}</li>
+        <li>{{ t.coin_7 }}</li>
+        <li>{{ t.coin_8 }}</li>
+        <li>{{ t.coin_9 }}</li>
       </ul>
-      <p>从初爻（第一爻）摇到上爻（第六爻），共投掷六次，再将六个数值依次填入下方。</p>
+      <p>{{ t.coin_guide_outro }}</p>
     </div>
 
     {% if error %}
@@ -28,9 +31,10 @@
     {% endif %}
 
     <form method="post" class="yao-form no-print">
+      <input type="hidden" name="lang" value="{{ lang }}">
       {% for i in range(1, 7) %}
         <label>
-          第{{ i }}爻
+          {{ t.yao_label.format(i) }}
           <input
             type="number"
             name="yao{{ i }}"
@@ -41,15 +45,15 @@
           >
         </label>
       {% endfor %}
-      <button type="submit">起卦</button>
+      <button type="submit">{{ t.submit }}</button>
     </form>
 
     {% if result %}
       <section class="result">
-        <button type="button" class="print-btn no-print" onclick="window.print()">打印卦象</button>
+        <button type="button" class="print-btn no-print" onclick="window.print()">{{ t.print_btn }}</button>
         <div class="hexagram-pair">
           <div class="hexagram">
-            <h2>本卦{% if result.original %}：{{ result.original.name }}{% endif %}</h2>
+            <h2>{{ t.original_hexagram }}{% if result.original %}：{{ result.original.name }}{% endif %}</h2>
             <div class="lines">
               {% for bit in result.original_bits %}
                 <div class="line {{ 'yang' if bit == 1 else 'yin' }}"></div>
@@ -69,7 +73,7 @@
 
           {% if result.has_change %}
             <div class="hexagram">
-              <h2>变卦{% if result.changed %}：{{ result.changed.name }}{% endif %}</h2>
+              <h2>{{ t.changed_hexagram }}{% if result.changed %}：{{ result.changed.name }}{% endif %}</h2>
               <div class="lines">
                 {% for bit in result.changed_bits %}
                   <div class="line {{ 'yang' if bit == 1 else 'yin' }}"></div>
@@ -91,13 +95,13 @@
 
         {% if result.moving_text %}
           <div class="moving-text">
-            <h3>爻辞</h3>
+            <h3>{{ t.moving_text_label }}</h3>
             <p>{{ result.moving_text }}</p>
           </div>
         {% endif %}
 
         {% if not result.has_change %}
-          <p class="no-change">无变爻，本卦即为最终卦。</p>
+          <p class="no-change">{{ t.no_change }}</p>
         {% endif %}
       </section>
     {% endif %}
