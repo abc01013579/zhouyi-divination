@@ -31,6 +31,7 @@ UI_STRINGS = {
         "lang_switch_label": "English",
         "lang_switch_target": "en",
         "classics_link_label": "中华典籍",
+        "guide_link_label": "如何解卦",
     },
     "en": {
         "html_lang": "en",
@@ -56,6 +57,7 @@ UI_STRINGS = {
         "lang_switch_label": "中文",
         "lang_switch_target": "zh",
         "classics_link_label": "Chinese Classics",
+        "guide_link_label": "How to Read a Hexagram",
     },
 }
 
