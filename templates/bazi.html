@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="{{ t.html_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ t.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main>
+    <div class="lang-switch no-print">
+      <a href="{{ url_for('index') }}?lang={{ lang }}">{{ t.index_link_label }}</a>
+      <a href="?lang={{ t.lang_switch_target }}">{{ t.lang_switch_label }}</a>
+    </div>
+    <h1>{{ t.heading }}</h1>
+    <p class="hint no-print">{{ t.hint }}</p>
+
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" class="yao-form no-print">
+      <input type="hidden" name="lang" value="{{ lang }}">
+      <label>
+        {{ t.year_label }}
+        <input type="number" name="year" required value="{{ submitted.year if submitted else '' }}">
+      </label>
+      <label>
+        {{ t.month_label }}
+        <input type="number" name="month" min="1" max="12" required value="{{ submitted.month if submitted else '' }}">
+      </label>
+      <label>
+        {{ t.day_label }}
+        <input type="number" name="day" min="1" max="31" required value="{{ submitted.day if submitted else '' }}">
+      </label>
+      <label>
+        {{ t.hour_label }}
+        <input type="number" name="hour" min="0" max="23" required value="{{ submitted.hour if submitted else '' }}">
+      </label>
+      <button type="submit">{{ t.submit }}</button>
+    </form>
+
+    {% if result %}
+      <section class="result">
+        <div class="hexagram">
+          <h2>{{ t.pillars_heading }}：{{ result.pillars_text }}</h2>
+          <ul class="yao-text">
+            {% for pillar in result.pillars %}
+              <li>{{ pillar.label }}：{{ pillar.text }}（{{ pillar.stem_phase }} / {{ pillar.branch_phase }}）</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="hexagram">
+          <h2>{{ t.counts_heading }}</h2>
+          <ul class="yao-text">
+            {% for c in result.counts %}
+              <li>{{ c.label }}: {{ c.count }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>

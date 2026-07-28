@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 
+from bazi import calculate_bazi
 from yijing_core import cast_reading
 
 app = Flask(__name__)
@@ -32,6 +33,7 @@ UI_STRINGS = {
         "lang_switch_target": "en",
         "classics_link_label": "中华典籍",
         "guide_link_label": "如何解卦",
+        "bazi_link_label": "八字五行",
     },
     "en": {
         "html_lang": "en",
@@ -58,6 +60,46 @@ UI_STRINGS = {
         "lang_switch_target": "zh",
         "classics_link_label": "Chinese Classics",
         "guide_link_label": "How to Read a Hexagram",
+        "bazi_link_label": "BaZi Five Elements",
+    },
+}
+
+BAZI_STRINGS = {
+    "zh": {
+        "html_lang": "zh",
+        "title": "八字五行",
+        "heading": "八字五行",
+        "hint": "请输入公历出生年、月、日、时（24 小时制），计算四柱及五行分布。",
+        "year_label": "出生年",
+        "month_label": "出生月",
+        "day_label": "出生日",
+        "hour_label": "出生时（0-23）",
+        "submit": "起八字",
+        "pillars_heading": "四柱",
+        "counts_heading": "五行统计",
+        "error_incomplete": "请输入完整的出生年月日时。",
+        "error_invalid_date": "请输入有效的日期。",
+        "lang_switch_label": "English",
+        "lang_switch_target": "en",
+        "index_link_label": "周易摇卦",
+    },
+    "en": {
+        "html_lang": "en",
+        "title": "BaZi Five Elements",
+        "heading": "BaZi Five Elements",
+        "hint": "Enter your birth date and hour (24h, solar calendar) to compute the Four Pillars and Five Element breakdown.",
+        "year_label": "Birth year",
+        "month_label": "Birth month",
+        "day_label": "Birth day",
+        "hour_label": "Birth hour (0-23)",
+        "submit": "Calculate",
+        "pillars_heading": "Four Pillars",
+        "counts_heading": "Five Element Tally",
+        "error_incomplete": "Please fill in the full birth date and hour.",
+        "error_invalid_date": "Please enter a valid date.",
+        "lang_switch_label": "中文",
+        "lang_switch_target": "zh",
+        "index_link_label": "Zhouyi Divination",
     },
 }
 
@@ -94,6 +136,34 @@ def index():
 
     return render_template(
         "index.html", result=result, error=error, submitted=submitted, lang=lang, t=t
+    )
+
+
+@app.route("/bazi", methods=["GET", "POST"])
+def bazi_page():
+    result = None
+    error = None
+    submitted = {}
+    lang = resolve_lang(request)
+    t = BAZI_STRINGS[lang]
+
+    if request.method == "POST":
+        submitted = {
+            field: request.form.get(field, "").strip() for field in ("year", "month", "day", "hour")
+        }
+
+        try:
+            year, month, day, hour = (int(submitted[field]) for field in ("year", "month", "day", "hour"))
+        except ValueError:
+            error = t["error_incomplete"]
+        else:
+            try:
+                result = calculate_bazi(year, month, day, hour, lang=lang)
+            except ValueError:
+                error = t["error_invalid_date"]
+
+    return render_template(
+        "bazi.html", result=result, error=error, submitted=submitted, lang=lang, t=t
     )
 
 
