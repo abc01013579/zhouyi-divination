@@ -96,7 +96,7 @@ def cast_reading(yao_list, lang="zh"):
     data4096 = DATA4096_BY_LANG[lang]
 
     yao_tuple = tuple(yao_list)
-    moving_text = data4096.get(yao_tuple)
+    chosen_text = data4096.get(yao_tuple)
 
     original_bits = tuple(yao % 2 for yao in yao_list)
     changed_bits = tuple(calculate_changed(yao) for yao in yao_list)
@@ -107,7 +107,7 @@ def cast_reading(yao_list, lang="zh"):
         "labels": YAO_LABELS_BY_LANG[lang],
         "original_bits": list(reversed(original_bits)),
         "changed_bits": list(reversed(changed_bits)) if has_change else None,
-        "moving_text": moving_text,
+        "chosen_text": chosen_text,
         "original": hexagrams.get(original_bits),
         "changed": hexagrams.get(changed_bits) if has_change else None,
         "has_change": has_change,
