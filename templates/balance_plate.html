@@ -163,7 +163,7 @@
  <div id="logList"></div>
  </div>
 
- <footer>PROTOTYPE — DATA STORED LOCALLY ON THIS DEVICE ONLY</footer>
+ <footer>PROTOTYPE — RESETS EACH VISIT, NOTHING IS SAVED</footer>
 </div>
 
 <script>
@@ -285,26 +285,12 @@ const CATEGORIES = ['Grain','Vegetable','Fruit','Protein'];
 let log = [];
 let activeTab = 'Grain';
 
-function loadLog(){
- try{
- const raw = localStorage.getItem('balance-plate:today');
- if(raw) log = JSON.parse(raw);
- }catch(e){ log = []; }
- render();
-}
-function saveLog(){
- try{ localStorage.setItem('balance-plate:today', JSON.stringify(log)); }
- catch(e){ console.error('storage save failed', e); }
-}
-
 function addFood(food){
  log.push({...food, id: Date.now()+Math.random()});
- saveLog();
  render();
 }
 function removeFood(id){
  log = log.filter(f=>f.id!==id);
- saveLog();
  render();
 }
 
@@ -470,7 +456,7 @@ function render(){
  renderInsight();
 }
 
-loadLog();
+render();
 </script>
 </body>
 </html>
