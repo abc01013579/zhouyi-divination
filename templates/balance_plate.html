@@ -371,9 +371,11 @@ function renderWheel(){
  const r = minR + (maxR-minR) * (count/maxCount) * (count>0?1:0);
  const finalR = count>0 ? Math.max(r, minR*0.6) : minR*0.5;
  svgContent += `<circle cx="${p.x}" cy="${p.y}" r="${finalR}" fill="${ELEMENTS[p.k].hex}" opacity="${count>0?0.9:0.25}"/>`;
- const labelY = p.y > cy ? p.y + finalR + 16 : p.y - finalR - 10;
+ const isBelow = p.y > cy;
+ const labelY = isBelow ? p.y + finalR + 16 : p.y - finalR - 10;
+ const countY = isBelow ? labelY + 13 : labelY - 13;
  svgContent += `<text x="${p.x}" y="${labelY}" text-anchor="middle" class="node-label">${ELEMENTS[p.k].label.split(' · ')[1]}</text>`;
- svgContent += `<text x="${p.x}" y="${labelY+13}" text-anchor="middle" class="node-count">${count}</text>`;
+ svgContent += `<text x="${p.x}" y="${countY}" text-anchor="middle" class="node-count">${count}</text>`;
  });
 
  svg.innerHTML = svgContent;
