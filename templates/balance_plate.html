@@ -109,6 +109,14 @@
  color:var(--ink-soft);text-decoration:none;
  }
  .back-link:hover{color:var(--ink);}
+
+ .shopping-item{
+ display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+ padding:9px 0;border-bottom:1px solid var(--line);
+ }
+ .shopping-item:last-child{border-bottom:none;}
+ .shopping-name{font-size:14px;color:var(--ink);}
+ .shopping-reason{font-size:11px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -118,7 +126,7 @@
 
  <header>
  <h1>Balance <em>Plate</em></h1>
- <div class="tagline">a five-color, five-taste reading of what you've eaten today — grounded in the traditional Chinese five-element food framework</div>
+ <div class="tagline">a five-color, five-taste reading of what you've eaten this week — grounded in the traditional Chinese five-element food framework</div>
  </header>
 
  <div class="grid">
@@ -137,7 +145,7 @@
 
  <div class="card">
  <h2>Nature — Yin / Yang</h2>
- <div class="sub">cooling vs. warming, averaged across today's log</div>
+ <div class="sub">cooling vs. warming, averaged across this week's log</div>
  <div class="gauge-track"><div class="gauge-marker" id="gaugeMarker" style="left:50%"></div></div>
  <div class="gauge-labels"><span>Yin · cooling</span><span>Yang · warming</span></div>
  </div>
@@ -152,18 +160,24 @@
 
  <div class="card log-card" style="margin-top:20px;">
  <h2>Add Food</h2>
- <div class="sub">tap a food to add it to today's plate</div>
+ <div class="sub">tap a food to add it to this week's plate</div>
  <div class="tabs" id="tabs"></div>
  <div class="chips" id="chips"></div>
  </div>
 
  <div class="card log-card">
- <h2>Today's Plate</h2>
+ <h2>This Week's Plate</h2>
  <div class="sub" id="logSub">nothing logged yet</div>
  <div id="logList"></div>
  </div>
 
- <footer>PROTOTYPE — RESETS EACH VISIT, NOTHING IS SAVED</footer>
+ <div class="card log-card">
+ <h2>Shopping List</h2>
+ <div class="sub">pick these up to round out the week</div>
+ <div id="shoppingList"></div>
+ </div>
+
+ <footer>PROTOTYPE — DATA STORED LOCALLY, RESETS EACH WEEK</footer>
 </div>
 
 <script>
@@ -285,12 +299,36 @@ const CATEGORIES = ['Grain','Vegetable','Fruit','Protein'];
 let log = [];
 let activeTab = 'Grain';
 
+function getWeekKey(){
+ // Monday-anchored week, so the log resets once per calendar week
+ const now = new Date();
+ const dayIndex = (now.getDay() + 6) % 7; // Mon=0 ... Sun=6
+ const monday = new Date(now);
+ monday.setDate(now.getDate() - dayIndex);
+ return monday.toISOString().slice(0, 10);
+}
+const STORAGE_KEY = 'balance-plate:' + getWeekKey();
+
+function loadLog(){
+ try{
+ const raw = localStorage.getItem(STORAGE_KEY);
+ if(raw) log = JSON.parse(raw);
+ }catch(e){ log = []; }
+ render();
+}
+function saveLog(){
+ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(log)); }
+ catch(e){ console.error('storage save failed', e); }
+}
+
 function addFood(food){
  log.push({...food, id: Date.now()+Math.random()});
+ saveLog();
  render();
 }
 function removeFood(id){
  log = log.filter(f=>f.id!==id);
+ saveLog();
  render();
 }
 
@@ -324,7 +362,7 @@ function renderLog(){
  list.innerHTML='';
  if(log.length===0){
  sub.textContent = "nothing logged yet";
- list.innerHTML = '<div class="log-empty">Tap a food above to start building today\'s plate.</div>';
+ list.innerHTML = '<div class="log-empty">Tap a food above to start building this week\'s plate.</div>';
  return;
  }
  sub.textContent = `${log.length} item${log.length>1?'s':''} logged`;
@@ -429,7 +467,7 @@ function renderInsight(){
  let parts=[];
  if(missingColors.length){
  const c = missingColors[0];
- parts.push(`You haven't touched <b>${ELEMENTS[c].label}</b> yet today.${tipFor(f=>f.color===c)}`);
+ parts.push(`You haven't touched <b>${ELEMENTS[c].label}</b> yet this week.${tipFor(f=>f.color===c)}`);
  }
  if(avgNature > 0.4){
  parts.push(`Your plate is leaning <b>warming</b> — a cooling food could bring it back to center.${tipFor(f=>f.nature<0)}`);
@@ -446,6 +484,59 @@ function renderInsight(){
  el.innerHTML = parts.slice(0,2).join(' ');
 }
 
+function renderShoppingList(){
+ const el = document.getElementById('shoppingList');
+ el.innerHTML = '';
+ if(log.length===0){
+ el.innerHTML = '<div class="log-empty">Log a few foods this week to get shopping suggestions.</div>';
+ return;
+ }
+
+ const colorCounts={}; CYCLE.forEach(k=>colorCounts[k]=0);
+ log.forEach(f=>colorCounts[f.color]++);
+ const missingColors = CYCLE.filter(k=>colorCounts[k]===0);
+
+ const tasteCounts={}; TASTES.forEach(t=>tasteCounts[t]=0);
+ log.forEach(f=>tasteCounts[f.taste]++);
+ const missingTastes = TASTES.filter(t=>tasteCounts[t]===0);
+
+ const avgNature = log.reduce((s,f)=>s+f.nature,0)/log.length;
+
+ const items = new Map(); // food name -> reason
+
+ missingColors.forEach(c=>{
+ suggestFoods(f=>f.color===c).forEach(name=>{
+ if(!items.has(name)) items.set(name, ELEMENTS[c].label.split(' · ')[1]);
+ });
+ });
+ missingTastes.forEach(t=>{
+ suggestFoods(f=>f.taste===t).forEach(name=>{
+ if(!items.has(name)) items.set(name, t);
+ });
+ });
+ if(avgNature > 0.3){
+ suggestFoods(f=>f.nature<0).forEach(name=>{
+ if(!items.has(name)) items.set(name, 'cooling');
+ });
+ } else if(avgNature < -0.3){
+ suggestFoods(f=>f.nature>0).forEach(name=>{
+ if(!items.has(name)) items.set(name, 'warming');
+ });
+ }
+
+ if(items.size===0){
+ el.innerHTML = '<div class="log-empty">Nicely balanced so far — nothing urgent to add.</div>';
+ return;
+ }
+
+ items.forEach((reason, name)=>{
+ const row = document.createElement('div');
+ row.className = 'shopping-item';
+ row.innerHTML = `<span class="shopping-name">${name}</span><span class="shopping-reason">${reason}</span>`;
+ el.appendChild(row);
+ });
+}
+
 function render(){
  renderTabs();
  renderChips();
@@ -454,9 +545,10 @@ function render(){
  renderGauge();
  renderTastes();
  renderInsight();
+ renderShoppingList();
 }
 
-render();
+loadLog();
 </script>
 </body>
 </html>
