@@ -102,10 +102,19 @@
  .log-chip button:hover{background:rgba(245,241,230,.3);}
 
  footer{margin-top:36px;font-size:11px;color:var(--ink-soft);text-align:center;font-family:'JetBrains Mono',monospace;}
+
+ .back-link{
+ display:inline-block;margin-bottom:16px;
+ font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+ color:var(--ink-soft);text-decoration:none;
+ }
+ .back-link:hover{color:var(--ink);}
 </style>
 </head>
 <body>
 <div class="wrap">
+
+ <a class="back-link" href="{{ url_for('index') }}">&larr; 周易摇卦</a>
 
  <header>
  <h1>Balance <em>Plate</em></h1>
