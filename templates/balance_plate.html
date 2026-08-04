@@ -125,7 +125,7 @@
  <div class="card" id="wheelCard">
  <h2>Element Wheel</h2>
  <div class="sub">node size = how much of that color you've eaten</div>
- <svg id="wheel" viewBox="0 0 320 320"></svg>
+ <svg id="wheel" viewBox="0 0 320 344"></svg>
  </div>
 
  <div class="stack">
@@ -353,7 +353,7 @@ function renderLog(){
 
 function renderWheel(){
  const svg = document.getElementById('wheel');
- const cx=160, cy=160, ringR=100, minR=14, maxR=38;
+ const cx=160, cy=184, ringR=100, minR=14, maxR=38;
  const counts = {};
  CYCLE.forEach(k=>counts[k]=0);
  log.forEach(f=>counts[f.color]++);
