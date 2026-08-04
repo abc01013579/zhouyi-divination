@@ -414,6 +414,16 @@ function renderTastes(){
  });
 }
 
+function suggestFoods(predicate, limit=2){
+ const loggedNames = new Set(log.map(f=>f.name));
+ return FOODS.filter(f=>predicate(f) && !loggedNames.has(f.name)).slice(0, limit).map(f=>f.name);
+}
+
+function tipFor(predicate){
+ const suggestions = suggestFoods(predicate);
+ return suggestions.length ? ` Try <b>${suggestions.join('</b> or <b>')}</b>.` : '';
+}
+
 function renderInsight(){
  const el = document.getElementById('insight');
  if(log.length===0){
@@ -433,15 +443,16 @@ function renderInsight(){
  let parts=[];
  if(missingColors.length){
  const c = missingColors[0];
- parts.push(`You haven't touched <b>${ELEMENTS[c].label}</b> yet today.`);
+ parts.push(`You haven't touched <b>${ELEMENTS[c].label}</b> yet today.${tipFor(f=>f.color===c)}`);
  }
  if(avgNature > 0.4){
- parts.push(`Your plate is leaning <b>warming</b> — a cooling food could bring it back to center.`);
+ parts.push(`Your plate is leaning <b>warming</b> — a cooling food could bring it back to center.${tipFor(f=>f.nature<0)}`);
  } else if(avgNature < -0.4){
- parts.push(`Your plate is leaning <b>cooling</b> — something warming might balance it out.`);
+ parts.push(`Your plate is leaning <b>cooling</b> — something warming might balance it out.${tipFor(f=>f.nature>0)}`);
  }
  if(missingTastes.length && parts.length<2){
- parts.push(`No <b>${missingTastes[0]}</b> taste logged yet.`);
+ const t = missingTastes[0];
+ parts.push(`No <b>${t}</b> taste logged yet.${tipFor(f=>f.taste===t)}`);
  }
  if(parts.length===0){
  parts.push(`Nicely balanced across colors and tastes so far — keep it up.`);
