@@ -35,6 +35,7 @@ UI_STRINGS = {
         "guide_link_label": "如何解卦",
         "journal_link_label": "随笔",
         "bazi_link_label": "八字五行",
+        "balance_plate_link_label": "五色平衡盘",
     },
     "en": {
         "html_lang": "en",
@@ -63,6 +64,7 @@ UI_STRINGS = {
         "guide_link_label": "How to Read a Hexagram",
         "journal_link_label": "Journal",
         "bazi_link_label": "BaZi Five Elements",
+        "balance_plate_link_label": "Balance Plate",
     },
 }
 
@@ -167,6 +169,11 @@ def bazi_page():
     return render_template(
         "bazi.html", result=result, error=error, submitted=submitted, lang=lang, t=t
     )
+
+
+@app.route("/balance-plate")
+def balance_plate_page():
+    return render_template("balance_plate.html")
 
 
 if __name__ == "__main__":

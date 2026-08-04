@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balance Plate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+ :root{
+ --paper:#F5F1E6;
+ --card:#FBF8F1;
+ --ink:#232620;
+ --ink-soft:#5B5A50;
+ --line:#DDD5C3;
+
+ --wood:#3F7A57;
+ --fire:#C1440E;
+ --earth:#C99A2E;
+ --metal:#8C8377;
+ --water:#2F4858;
+
+ --yin:#3E6FA5;
+ --yang:#C1440E;
+ }
+ *{box-sizing:border-box;}
+ body{
+ margin:0;
+ background:var(--paper);
+ color:var(--ink);
+ font-family:'Inter',sans-serif;
+ -webkit-font-smoothing:antialiased;
+ }
+ .wrap{max-width:1040px;margin:0 auto;padding:36px 20px 80px;}
+
+ header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:20px;}
+ h1{
+ font-family:'Fraunces',serif;
+ font-weight:600;
+ font-size:clamp(32px,5vw,44px);
+ margin:0;
+ letter-spacing:-0.01em;
+ }
+ h1 em{font-style:italic;font-weight:500;color:var(--fire);}
+ .tagline{font-size:14px;color:var(--ink-soft);max-width:280px;text-align:right;line-height:1.5;}
+
+ .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;margin-top:28px;}
+ @media (max-width:760px){.grid{grid-template-columns:1fr;}}
+
+ .card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:24px;}
+ .card h2{font-family:'Fraunces',serif;font-weight:600;font-size:16px;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.06em;}
+ .card .sub{font-size:12px;color:var(--ink-soft);margin-bottom:18px;}
+
+ /* Wheel */
+ #wheelCard{display:flex;flex-direction:column;align-items:center;}
+ svg#wheel{width:100%;max-width:340px;height:auto;}
+ .node-label{font-family:'JetBrains Mono',monospace;font-size:11px;fill:var(--ink);}
+ .node-count{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--ink-soft);}
+
+ /* right column stack */
+ .stack{display:flex;flex-direction:column;gap:18px;}
+
+ .insight{font-family:'Fraunces',serif;font-style:italic;font-size:17px;line-height:1.5;color:var(--ink);}
+ .insight b{font-style:normal;font-weight:600;}
+
+ .gauge-track{position:relative;height:10px;border-radius:6px;margin-top:14px;background:linear-gradient(90deg,var(--yin),#EDE6D3 50%,var(--yang));}
+ .gauge-marker{position:absolute;top:-5px;width:20px;height:20px;border-radius:50%;background:var(--card);border:3px solid var(--ink);transform:translateX(-50%);transition:left .4s ease;}
+ .gauge-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-soft);margin-top:8px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.04em;}
+
+ .taste-row{display:flex;gap:10px;margin-top:14px;}
+ .taste{flex:1;text-align:center;}
+ .taste-bar{height:52px;width:100%;border:1px solid var(--line);border-radius:3px;position:relative;overflow:hidden;background:#EFE9DA;}
+ .taste-fill{position:absolute;bottom:0;left:0;right:0;background:var(--ink);opacity:.82;transition:height .4s ease;}
+ .taste-name{font-size:10px;margin-top:6px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;text-transform:uppercase;}
+
+ /* Add food */
+ .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+ .tab{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:7px 14px;border:1px solid var(--line);border-radius:20px;background:transparent;cursor:pointer;color:var(--ink-soft);}
+ .tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+
+ .chips{display:flex;flex-wrap:wrap;gap:8px;}
+ .chip{
+ display:flex;align-items:center;gap:7px;
+ padding:8px 12px;border:1px solid var(--line);border-radius:20px;
+ background:var(--card);cursor:pointer;font-size:13px;
+ transition:transform .12s ease, border-color .12s ease;
+ }
+ .chip:hover{transform:translateY(-1px);border-color:var(--ink);}
+ .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+ .log-card{margin-top:20px;}
+ .log-empty{color:var(--ink-soft);font-size:13px;font-style:italic;}
+ .log-chip{
+ display:inline-flex;align-items:center;gap:8px;
+ background:var(--ink);color:var(--paper);
+ padding:7px 8px 7px 12px;border-radius:20px;font-size:13px;margin:0 8px 8px 0;
+ }
+ .log-chip button{
+ background:rgba(245,241,230,.15);border:none;color:var(--paper);
+ width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:12px;line-height:1;
+ }
+ .log-chip button:hover{background:rgba(245,241,230,.3);}
+
+ footer{margin-top:36px;font-size:11px;color:var(--ink-soft);text-align:center;font-family:'JetBrains Mono',monospace;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+ <header>
+ <h1>Balance <em>Plate</em></h1>
+ <div class="tagline">a five-color, five-taste reading of what you've eaten today — grounded in the traditional Chinese five-element food framework</div>
+ </header>
+
+ <div class="grid">
+ <div class="card" id="wheelCard">
+ <h2>Element Wheel</h2>
+ <div class="sub">node size = how much of that color you've eaten</div>
+ <svg id="wheel" viewBox="0 0 320 320"></svg>
+ </div>
+
+ <div class="stack">
+ <div class="card">
+ <h2>Insight</h2>
+ <div class="sub">updates as you log food</div>
+ <div class="insight" id="insight">Log a few foods and I'll tell you what your plate is missing.</div>
+ </div>
+
+ <div class="card">
+ <h2>Nature — Yin / Yang</h2>
+ <div class="sub">cooling vs. warming, averaged across today's log</div>
+ <div class="gauge-track"><div class="gauge-marker" id="gaugeMarker" style="left:50%"></div></div>
+ <div class="gauge-labels"><span>Yin · cooling</span><span>Yang · warming</span></div>
+ </div>
+
+ <div class="card">
+ <h2>Taste Balance</h2>
+ <div class="sub">the five TCM tastes</div>
+ <div class="taste-row" id="tasteRow"></div>
+ </div>
+ </div>
+ </div>
+
+ <div class="card log-card" style="margin-top:20px;">
+ <h2>Add Food</h2>
+ <div class="sub">tap a food to add it to today's plate</div>
+ <div class="tabs" id="tabs"></div>
+ <div class="chips" id="chips"></div>
+ </div>
+
+ <div class="card log-card">
+ <h2>Today's Plate</h2>
+ <div class="sub" id="logSub">nothing logged yet</div>
+ <div id="logList"></div>
+ </div>
+
+ <footer>PROTOTYPE — DATA STORED LOCALLY ON THIS DEVICE ONLY</footer>
+</div>
+
+<script>
+const ELEMENTS = {
+ wood: {label:'Wood · Green', hex:'#3F7A57'},
+ fire: {label:'Fire · Red', hex:'#C1440E'},
+ earth: {label:'Earth · Yellow',hex:'#C99A2E'},
+ metal: {label:'Metal · White', hex:'#8C8377'},
+ water: {label:'Water · Black', hex:'#2F4858'},
+};
+const CYCLE = ['wood','fire','earth','metal','water']; // generating order
+
+const TASTES = ['sour','bitter','sweet','pungent','salty'];
+
+const FOODS = [
+ // Grain
+ {name:'Brown rice', cat:'Grain', color:'earth', taste:'sweet', nature:0},
+ {name:'Millet', cat:'Grain', color:'earth', taste:'sweet', nature:1},
+ {name:'Black rice', cat:'Grain', color:'water', taste:'sweet', nature:0},
+ {name:'Barley', cat:'Grain', color:'metal', taste:'salty', nature:-1},
+ {name:'Buckwheat', cat:'Grain', color:'earth', taste:'sweet', nature:-1},
+ {name:'White rice', cat:'Grain', color:'metal', taste:'sweet', nature:0},
+ {name:'Oats', cat:'Grain', color:'earth', taste:'sweet', nature:0},
+ {name:'Corn', cat:'Grain', color:'earth', taste:'sweet', nature:0},
+ // Vegetable
+ {name:'Spinach', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1},
+ {name:'Broccoli', cat:'Vegetable', color:'wood', taste:'sweet', nature:0},
+ {name:'Bok choy', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1},
+ {name:'Cucumber', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1},
+ {name:'Tomato', cat:'Vegetable', color:'fire', taste:'sour', nature:-1},
+ {name:'Red bell pepper', cat:'Vegetable', color:'fire', taste:'pungent', nature:1},
+ {name:'Carrot', cat:'Vegetable', color:'earth', taste:'sweet', nature:0},
+ {name:'Daikon radish', cat:'Vegetable', color:'metal', taste:'pungent', nature:-1},
+ {name:'Onion', cat:'Vegetable', color:'metal', taste:'pungent', nature:1},
+ {name:'Ginger', cat:'Vegetable', color:'earth', taste:'pungent', nature:1},
+ {name:'Bitter melon', cat:'Vegetable', color:'wood', taste:'bitter', nature:-1},
+ {name:'Kale', cat:'Vegetable', color:'wood', taste:'bitter', nature:0},
+ {name:'Seaweed', cat:'Vegetable', color:'water', taste:'salty', nature:-1},
+ {name:'Garlic', cat:'Vegetable', color:'metal', taste:'pungent', nature:1},
+ {name:'Celery', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1},
+ {name:'Shiitake mushroom', cat:'Vegetable', color:'earth', taste:'sweet', nature:0},
+ // Fruit
+ {name:'Watermelon', cat:'Fruit', color:'fire', taste:'sweet', nature:-1},
+ {name:'Goji berry', cat:'Fruit', color:'fire', taste:'sweet', nature:1},
+ {name:'Lychee', cat:'Fruit', color:'fire', taste:'sweet', nature:1},
+ {name:'Banana', cat:'Fruit', color:'earth', taste:'sweet', nature:-1},
+ {name:'Longan', cat:'Fruit', color:'earth', taste:'sweet', nature:1},
+ {name:'Pear', cat:'Fruit', color:'metal', taste:'sweet', nature:-1},
+ {name:'Apple', cat:'Fruit', color:'metal', taste:'sour', nature:0},
+ {name:'Dragon fruit', cat:'Fruit', color:'metal', taste:'sweet', nature:-1},
+ {name:'Blueberry', cat:'Fruit', color:'water', taste:'sour', nature:0},
+ {name:'Orange', cat:'Fruit', color:'fire', taste:'sour', nature:0},
+ {name:'Grape', cat:'Fruit', color:'earth', taste:'sweet', nature:0},
+ {name:'Peach', cat:'Fruit', color:'fire', taste:'sweet', nature:1},
+ {name:'Mango', cat:'Fruit', color:'earth', taste:'sweet', nature:1},
+ {name:'Kiwi', cat:'Fruit', color:'wood', taste:'sour', nature:-1},
+ // Protein
+ {name:'Chicken', cat:'Protein', color:'earth', taste:'sweet', nature:1},
+ {name:'Beef', cat:'Protein', color:'earth', taste:'sweet', nature:1},
+ {name:'Lamb', cat:'Protein', color:'fire', taste:'sweet', nature:1},
+ {name:'Duck', cat:'Protein', color:'metal', taste:'salty', nature:-1},
+ {name:'White fish', cat:'Protein', color:'metal', taste:'sweet', nature:0},
+ {name:'Shrimp', cat:'Protein', color:'metal', taste:'sweet', nature:1},
+ {name:'Tofu', cat:'Protein', color:'metal', taste:'sweet', nature:-1},
+ {name:'Egg', cat:'Protein', color:'earth', taste:'sweet', nature:0},
+ {name:'Black beans', cat:'Protein', color:'water', taste:'salty', nature:0},
+ {name:'Salmon', cat:'Protein', color:'fire', taste:'sweet', nature:0},
+ {name:'Pork', cat:'Protein', color:'earth', taste:'sweet', nature:0},
+ {name:'Walnut', cat:'Protein', color:'water', taste:'sweet', nature:1},
+ {name:'Black sesame', cat:'Protein', color:'water', taste:'sweet', nature:0},
+];
+
+const CATEGORIES = ['Grain','Vegetable','Fruit','Protein'];
+
+let log = [];
+let activeTab = 'Grain';
+
+function loadLog(){
+ try{
+ const raw = localStorage.getItem('balance-plate:today');
+ if(raw) log = JSON.parse(raw);
+ }catch(e){ log = []; }
+ render();
+}
+function saveLog(){
+ try{ localStorage.setItem('balance-plate:today', JSON.stringify(log)); }
+ catch(e){ console.error('storage save failed', e); }
+}
+
+function addFood(food){
+ log.push({...food, id: Date.now()+Math.random()});
+ saveLog();
+ render();
+}
+function removeFood(id){
+ log = log.filter(f=>f.id!==id);
+ saveLog();
+ render();
+}
+
+function renderTabs(){
+ const tabs = document.getElementById('tabs');
+ tabs.innerHTML='';
+ CATEGORIES.forEach(cat=>{
+ const b=document.createElement('button');
+ b.className='tab'+(cat===activeTab?' active':'');
+ b.textContent=cat;
+ b.onclick=()=>{activeTab=cat;render();};
+ tabs.appendChild(b);
+ });
+}
+
+function renderChips(){
+ const chips = document.getElementById('chips');
+ chips.innerHTML='';
+ FOODS.filter(f=>f.cat===activeTab).forEach(f=>{
+ const c=document.createElement('div');
+ c.className='chip';
+ c.innerHTML=`<span class="dot" style="background:${ELEMENTS[f.color].hex}"></span>${f.name}`;
+ c.onclick=()=>addFood(f);
+ chips.appendChild(c);
+ });
+}
+
+function renderLog(){
+ const list = document.getElementById('logList');
+ const sub = document.getElementById('logSub');
+ list.innerHTML='';
+ if(log.length===0){
+ sub.textContent = "nothing logged yet";
+ list.innerHTML = '<div class="log-empty">Tap a food above to start building today\'s plate.</div>';
+ return;
+ }
+ sub.textContent = `${log.length} item${log.length>1?'s':''} logged`;
+ log.forEach(f=>{
+ const c=document.createElement('span');
+ c.className='log-chip';
+ c.innerHTML=`<span class="dot" style="background:${ELEMENTS[f.color].hex}"></span>${f.name}<button>&times;</button>`;
+ c.querySelector('button').onclick=()=>removeFood(f.id);
+ list.appendChild(c);
+ });
+}
+
+function renderWheel(){
+ const svg = document.getElementById('wheel');
+ const cx=160, cy=160, ringR=100, minR=14, maxR=38;
+ const counts = {};
+ CYCLE.forEach(k=>counts[k]=0);
+ log.forEach(f=>counts[f.color]++);
+ const maxCount = Math.max(1, ...Object.values(counts));
+
+ let svgContent = '';
+ // faint connecting ring
+ svgContent += `<circle cx="${cx}" cy="${cy}" r="${ringR}" fill="none" stroke="#DDD5C3" stroke-width="1"/>`;
+
+ const positions = CYCLE.map((k,i)=>{
+ const angle = -90 + i*72;
+ const rad = angle*Math.PI/180;
+ return {k, x: cx+ringR*Math.cos(rad), y: cy+ringR*Math.sin(rad)};
+ });
+
+ // generating-cycle path (thin arrows conceptually, just connecting line)
+ let pathD = `M ${positions[0].x} ${positions[0].y} `;
+ positions.slice(1).forEach(p=> pathD += `L ${p.x} ${p.y} `);
+ pathD += `L ${positions[0].x} ${positions[0].y}`;
+ svgContent += `<path d="${pathD}" fill="none" stroke="#DDD5C3" stroke-width="1" stroke-dasharray="3,4"/>`;
+
+ positions.forEach(p=>{
+ const count = counts[p.k];
+ const r = minR + (maxR-minR) * (count/maxCount) * (count>0?1:0);
+ const finalR = count>0 ? Math.max(r, minR*0.6) : minR*0.5;
+ svgContent += `<circle cx="${p.x}" cy="${p.y}" r="${finalR}" fill="${ELEMENTS[p.k].hex}" opacity="${count>0?0.9:0.25}"/>`;
+ const labelY = p.y > cy ? p.y + finalR + 16 : p.y - finalR - 10;
+ svgContent += `<text x="${p.x}" y="${labelY}" text-anchor="middle" class="node-label">${ELEMENTS[p.k].label.split(' · ')[1]}</text>`;
+ svgContent += `<text x="${p.x}" y="${labelY+13}" text-anchor="middle" class="node-count">${count}</text>`;
+ });
+
+ svg.innerHTML = svgContent;
+}
+
+function renderGauge(){
+ const marker = document.getElementById('gaugeMarker');
+ if(log.length===0){ marker.style.left='50%'; return; }
+ const avg = log.reduce((s,f)=>s+f.nature,0)/log.length; // -1..1
+ const pct = ((avg+1)/2)*100;
+ marker.style.left = pct+'%';
+}
+
+function renderTastes(){
+ const row = document.getElementById('tasteRow');
+ row.innerHTML='';
+ const counts={};
+ TASTES.forEach(t=>counts[t]=0);
+ log.forEach(f=>counts[f.taste]++);
+ const maxCount = Math.max(1, ...Object.values(counts));
+ TASTES.forEach(t=>{
+ const pct = (counts[t]/maxCount)*100;
+ const wrap=document.createElement('div');
+ wrap.className='taste';
+ wrap.innerHTML = `<div class="taste-bar"><div class="taste-fill" style="height:${counts[t]>0?pct:0}%"></div></div><div class="taste-name">${t} · ${counts[t]}</div>`;
+ row.appendChild(wrap);
+ });
+}
+
+function renderInsight(){
+ const el = document.getElementById('insight');
+ if(log.length===0){
+ el.innerHTML = "Log a few foods and I'll tell you what your plate is missing.";
+ return;
+ }
+ const colorCounts={}; CYCLE.forEach(k=>colorCounts[k]=0);
+ log.forEach(f=>colorCounts[f.color]++);
+ const missingColors = CYCLE.filter(k=>colorCounts[k]===0);
+
+ const tasteCounts={}; TASTES.forEach(t=>tasteCounts[t]=0);
+ log.forEach(f=>tasteCounts[f.taste]++);
+ const missingTastes = TASTES.filter(t=>tasteCounts[t]===0);
+
+ const avgNature = log.reduce((s,f)=>s+f.nature,0)/log.length;
+
+ let parts=[];
+ if(missingColors.length){
+ const c = missingColors[0];
+ parts.push(`You haven't touched <b>${ELEMENTS[c].label}</b> yet today.`);
+ }
+ if(avgNature > 0.4){
+ parts.push(`Your plate is leaning <b>warming</b> — a cooling food could bring it back to center.`);
+ } else if(avgNature < -0.4){
+ parts.push(`Your plate is leaning <b>cooling</b> — something warming might balance it out.`);
+ }
+ if(missingTastes.length && parts.length<2){
+ parts.push(`No <b>${missingTastes[0]}</b> taste logged yet.`);
+ }
+ if(parts.length===0){
+ parts.push(`Nicely balanced across colors and tastes so far — keep it up.`);
+ }
+ el.innerHTML = parts.slice(0,2).join(' ');
+}
+
+function render(){
+ renderTabs();
+ renderChips();
+ renderLog();
+ renderWheel();
+ renderGauge();
+ renderTastes();
+ renderInsight();
+}
+
+loadLog();
+</script>
+</body>
+</html>
