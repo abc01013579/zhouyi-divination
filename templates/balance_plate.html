@@ -90,6 +90,7 @@
 
  .log-card{margin-top:20px;}
  .log-empty{color:var(--ink-soft);font-size:13px;font-style:italic;}
+ .log-chips{display:flex;flex-wrap:wrap;}
  .log-chip{
  display:inline-flex;align-items:center;gap:8px;
  background:#FFFFFF;color:var(--ink);border:1px solid var(--line);
@@ -115,9 +116,10 @@
  .clear-btn{
  font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;
  padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:transparent;
- color:var(--ink-soft);cursor:pointer;
+ color:var(--ink-soft);cursor:pointer;margin-left:8px;
  }
  .clear-btn:hover{border-color:var(--fire);color:var(--fire);}
+ .clear-btn:first-child{margin-left:0;}
 
  .shopping-cat-row{padding:10px 0;border-bottom:1px solid var(--line);}
  .shopping-cat-row:last-child{border-bottom:none;}
@@ -134,6 +136,13 @@
 
  .season-now{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--wood);}
  .seasonal-badge{font-size:10px;margin-left:1px;}
+
+ @media print{
+ .back-link, header .tagline, #wheelCard, .stack, #addFoodCard, #shoppingSuggestionCard, footer, .clear-btn, .log-chip button{display:none !important;}
+ body{background:#fff;}
+ .card{border:none;padding:0;margin-bottom:20px;}
+ .grid{display:block;}
+ }
 </style>
 </head>
 <body>
@@ -175,7 +184,7 @@
  </div>
  </div>
 
- <div class="card log-card" style="margin-top:20px;">
+ <div class="card log-card" id="addFoodCard" style="margin-top:20px;">
  <div class="card-header-row">
  <h2>Add Food</h2>
  <span class="season-now" id="seasonNow"></span>
@@ -188,13 +197,16 @@
  <div class="card log-card">
  <div class="card-header-row">
  <h2>Shopping List</h2>
+ <div>
+ <button class="clear-btn" id="printBtn">Print</button>
  <button class="clear-btn" id="clearBtn">Clear</button>
+ </div>
  </div>
  <div class="sub" id="logSub">nothing logged yet</div>
  <div id="logList"></div>
  </div>
 
- <div class="card log-card">
+ <div class="card log-card" id="shoppingSuggestionCard">
  <h2>Shopping Suggestion</h2>
  <div class="sub">pick these up to round out the week</div>
  <div id="shoppingList"></div>
@@ -411,12 +423,29 @@ function renderLog(){
  return;
  }
  sub.textContent = `${log.length} item${log.length>1?'s':''} logged`;
- log.forEach(f=>{
+ CATEGORIES.forEach(cat=>{
+ const items = log.filter(f=>f.cat===cat);
+ if(items.length===0) return;
+
+ const row = document.createElement('div');
+ row.className = 'shopping-cat-row';
+
+ const catName = document.createElement('div');
+ catName.className = 'shopping-cat-name';
+ catName.textContent = cat;
+ row.appendChild(catName);
+
+ const chips = document.createElement('div');
+ chips.className = 'log-chips';
+ items.forEach(f=>{
  const c=document.createElement('span');
  c.className='log-chip';
  c.innerHTML=`<span class="dot" style="background:${ELEMENTS[f.color].hex}"></span>${f.name}<button>&times;</button>`;
  c.querySelector('button').onclick=()=>removeFood(f.id);
- list.appendChild(c);
+ chips.appendChild(c);
+ });
+ row.appendChild(chips);
+ list.appendChild(row);
  });
 }
 
@@ -633,6 +662,8 @@ document.getElementById('clearBtn').onclick = () => {
  saveLog();
  render();
 };
+
+document.getElementById('printBtn').onclick = () => window.print();
 
 loadLog();
 </script>
