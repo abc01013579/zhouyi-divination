@@ -122,11 +122,11 @@
  .shopping-cat-row{padding:10px 0;border-bottom:1px solid var(--line);}
  .shopping-cat-row:last-child{border-bottom:none;}
  .shopping-cat-name{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:8px;}
- .shopping-pills{display:flex;flex-wrap:wrap;gap:6px;}
+ .shopping-pills{display:flex;flex-wrap:wrap;row-gap:6px;column-gap:16px;}
  .shopping-pill{
- display:inline-flex;align-items:center;gap:5px;
- padding:6px 12px;border:1px solid var(--line);border-radius:20px;
- background:var(--card);cursor:pointer;font-size:13px;color:var(--ink);
+ display:inline-flex;align-items:baseline;gap:5px;
+ cursor:pointer;font-size:13px;color:var(--ink);
+ border-bottom:1px solid transparent;
  transition:border-color .12s ease;
  }
  .shopping-pill:hover{border-color:var(--ink);}
