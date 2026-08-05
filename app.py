@@ -35,7 +35,7 @@ UI_STRINGS = {
         "guide_link_label": "如何解卦",
         "journal_link_label": "随笔",
         "bazi_link_label": "八字五行",
-        "balance_plate_link_label": "Balance Plate",
+        "balance_plate_link_label": "Shopping List",
     },
     "en": {
         "html_lang": "en",
@@ -64,7 +64,7 @@ UI_STRINGS = {
         "guide_link_label": "How to Read a Hexagram",
         "journal_link_label": "Journal",
         "bazi_link_label": "BaZi Five Elements",
-        "balance_plate_link_label": "Balance Plate",
+        "balance_plate_link_label": "Shopping List",
     },
 }
 
