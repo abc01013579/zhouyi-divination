@@ -592,7 +592,7 @@ function render(){
 
 document.getElementById('clearBtn').onclick = () => {
  if(log.length===0) return;
- if(!confirm("Clear this week's plate? This can't be undone.")) return;
+ if(!confirm("Clear this week's shopping list? This can't be undone.")) return;
  log = [];
  saveLog();
  render();
