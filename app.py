@@ -35,7 +35,7 @@ UI_STRINGS = {
         "guide_link_label": "如何解卦",
         "journal_link_label": "随笔",
         "bazi_link_label": "八字五行",
-        "balance_plate_link_label": "五色平衡盘",
+        "balance_plate_link_label": "Balance Plate",
     },
     "en": {
         "html_lang": "en",
