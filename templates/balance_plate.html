@@ -119,15 +119,18 @@
  }
  .clear-btn:hover{border-color:var(--fire);color:var(--fire);}
 
- .shopping-item{
- display:flex;justify-content:space-between;align-items:baseline;gap:12px;
- padding:9px 4px;border-bottom:1px solid var(--line);
- cursor:pointer;border-radius:3px;transition:background .12s ease;
+ .shopping-cat-row{padding:10px 0;border-bottom:1px solid var(--line);}
+ .shopping-cat-row:last-child{border-bottom:none;}
+ .shopping-cat-name{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:8px;}
+ .shopping-pills{display:flex;flex-wrap:wrap;gap:6px;}
+ .shopping-pill{
+ display:inline-flex;align-items:center;gap:5px;
+ padding:6px 12px;border:1px solid var(--line);border-radius:20px;
+ background:var(--card);cursor:pointer;font-size:13px;color:var(--ink);
+ transition:border-color .12s ease;
  }
- .shopping-item:hover{background:var(--paper);}
- .shopping-item:last-child{border-bottom:none;}
- .shopping-name{font-size:14px;color:var(--ink);}
- .shopping-reason{font-size:11px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+ .shopping-pill:hover{border-color:var(--ink);}
+ .shopping-pill em{font-style:normal;color:var(--ink-soft);font-size:10px;text-transform:uppercase;letter-spacing:.03em;}
 </style>
 </head>
 <body>
@@ -178,7 +181,7 @@
 
  <div class="card log-card">
  <div class="card-header-row">
- <h2>This Week's Plate</h2>
+ <h2>Shopping List</h2>
  <button class="clear-btn" id="clearBtn">Clear</button>
  </div>
  <div class="sub" id="logSub">nothing logged yet</div>
@@ -186,7 +189,7 @@
  </div>
 
  <div class="card log-card">
- <h2>Shopping List</h2>
+ <h2>Shopping Suggestion</h2>
  <div class="sub">pick these up to round out the week</div>
  <div id="shoppingList"></div>
  </div>
@@ -543,14 +546,35 @@ function renderShoppingList(){
  return;
  }
 
- items.forEach((reason, name)=>{
+ CATEGORIES.forEach(cat=>{
+ const catItems = [...items.entries()].filter(([name]) => {
+ const food = FOODS.find(f=>f.name===name);
+ return food && food.cat === cat;
+ });
+ if(catItems.length===0) return;
+
  const row = document.createElement('div');
- row.className = 'shopping-item';
- row.innerHTML = `<span class="shopping-name">${name}</span><span class="shopping-reason">${reason}</span>`;
- row.onclick = () => {
+ row.className = 'shopping-cat-row';
+
+ const catName = document.createElement('div');
+ catName.className = 'shopping-cat-name';
+ catName.textContent = cat;
+ row.appendChild(catName);
+
+ const pills = document.createElement('div');
+ pills.className = 'shopping-pills';
+ catItems.forEach(([name, reason])=>{
+ const pill = document.createElement('span');
+ pill.className = 'shopping-pill';
+ pill.innerHTML = `${name} <em>${reason}</em>`;
+ pill.onclick = () => {
  const food = FOODS.find(f=>f.name===name);
  if(food) addFood(food);
  };
+ pills.appendChild(pill);
+ });
+ row.appendChild(pills);
+
  el.appendChild(row);
  });
 }
