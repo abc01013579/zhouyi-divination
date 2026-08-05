@@ -112,8 +112,10 @@
 
  .shopping-item{
  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
- padding:9px 0;border-bottom:1px solid var(--line);
+ padding:9px 4px;border-bottom:1px solid var(--line);
+ cursor:pointer;border-radius:3px;transition:background .12s ease;
  }
+ .shopping-item:hover{background:var(--paper);}
  .shopping-item:last-child{border-bottom:none;}
  .shopping-name{font-size:14px;color:var(--ink);}
  .shopping-reason{font-size:11px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
@@ -533,6 +535,10 @@ function renderShoppingList(){
  const row = document.createElement('div');
  row.className = 'shopping-item';
  row.innerHTML = `<span class="shopping-name">${name}</span><span class="shopping-reason">${reason}</span>`;
+ row.onclick = () => {
+ const food = FOODS.find(f=>f.name===name);
+ if(food) addFood(food);
+ };
  el.appendChild(row);
  });
 }
