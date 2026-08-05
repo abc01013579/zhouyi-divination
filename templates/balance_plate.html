@@ -131,6 +131,9 @@
  }
  .shopping-pill:hover{border-color:var(--ink);}
  .shopping-pill em{font-style:normal;color:var(--ink-soft);font-size:10px;text-transform:uppercase;letter-spacing:.03em;}
+
+ .season-now{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--wood);}
+ .seasonal-badge{font-size:10px;margin-left:1px;}
 </style>
 </head>
 <body>
@@ -173,8 +176,11 @@
  </div>
 
  <div class="card log-card" style="margin-top:20px;">
+ <div class="card-header-row">
  <h2>Add Food</h2>
- <div class="sub">tap a food to add it to this week's plate</div>
+ <span class="season-now" id="seasonNow"></span>
+ </div>
+ <div class="sub">tap a food to add it to this week's plate — 🌱 marks what's naturally in season right now</div>
  <div class="tabs" id="tabs"></div>
  <div class="chips" id="chips"></div>
  </div>
@@ -209,107 +215,120 @@ const CYCLE = ['wood','fire','earth','metal','water']; // generating order
 
 const TASTES = ['sour','bitter','sweet','pungent','salty'];
 
+// season: array of ['spring','summer','fall','winter'] when naturally in season (Northern Hemisphere,
+// temperate growing calendar), or 'all' for staples without a meaningful growing-season signal.
 const FOODS = [
  // Grain
- {name:'Brown rice', cat:'Grain', color:'earth', taste:'sweet', nature:0},
- {name:'Millet', cat:'Grain', color:'earth', taste:'sweet', nature:1},
- {name:'Black rice', cat:'Grain', color:'water', taste:'sweet', nature:0},
- {name:'Barley', cat:'Grain', color:'metal', taste:'salty', nature:-1},
- {name:'Buckwheat', cat:'Grain', color:'earth', taste:'sweet', nature:-1},
- {name:'White rice', cat:'Grain', color:'metal', taste:'sweet', nature:0},
- {name:'Oats', cat:'Grain', color:'earth', taste:'sweet', nature:0},
- {name:'Corn', cat:'Grain', color:'earth', taste:'sweet', nature:0},
- {name:'Sticky rice', cat:'Grain', color:'earth', taste:'sweet', nature:1},
- {name:'Red rice', cat:'Grain', color:'fire', taste:'sweet', nature:0},
- {name:'Rye', cat:'Grain', color:'metal', taste:'sweet', nature:0},
- {name:'Sorghum', cat:'Grain', color:'earth', taste:'sweet', nature:1},
- {name:"Job's tears", cat:'Grain', color:'metal', taste:'sweet', nature:-1},
- {name:'Quinoa', cat:'Grain', color:'earth', taste:'sweet', nature:0},
+ {name:'Brown rice', cat:'Grain', color:'earth', taste:'sweet', nature:0, season:'all'},
+ {name:'Millet', cat:'Grain', color:'earth', taste:'sweet', nature:1, season:'all'},
+ {name:'Black rice', cat:'Grain', color:'water', taste:'sweet', nature:0, season:'all'},
+ {name:'Barley', cat:'Grain', color:'metal', taste:'salty', nature:-1, season:'all'},
+ {name:'Buckwheat', cat:'Grain', color:'earth', taste:'sweet', nature:-1, season:'all'},
+ {name:'White rice', cat:'Grain', color:'metal', taste:'sweet', nature:0, season:'all'},
+ {name:'Oats', cat:'Grain', color:'earth', taste:'sweet', nature:0, season:'all'},
+ {name:'Corn', cat:'Grain', color:'earth', taste:'sweet', nature:0, season:['summer','fall']},
+ {name:'Sticky rice', cat:'Grain', color:'earth', taste:'sweet', nature:1, season:'all'},
+ {name:'Red rice', cat:'Grain', color:'fire', taste:'sweet', nature:0, season:'all'},
+ {name:'Rye', cat:'Grain', color:'metal', taste:'sweet', nature:0, season:'all'},
+ {name:'Sorghum', cat:'Grain', color:'earth', taste:'sweet', nature:1, season:'all'},
+ {name:"Job's tears", cat:'Grain', color:'metal', taste:'sweet', nature:-1, season:'all'},
+ {name:'Quinoa', cat:'Grain', color:'earth', taste:'sweet', nature:0, season:'all'},
  // Vegetable
- {name:'Spinach', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1},
- {name:'Broccoli', cat:'Vegetable', color:'wood', taste:'sweet', nature:0},
- {name:'Bok choy', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1},
- {name:'Cucumber', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1},
- {name:'Tomato', cat:'Vegetable', color:'fire', taste:'sour', nature:-1},
- {name:'Red bell pepper', cat:'Vegetable', color:'fire', taste:'pungent', nature:1},
- {name:'Carrot', cat:'Vegetable', color:'earth', taste:'sweet', nature:0},
- {name:'Daikon radish', cat:'Vegetable', color:'metal', taste:'pungent', nature:-1},
- {name:'Onion', cat:'Vegetable', color:'metal', taste:'pungent', nature:1},
- {name:'Ginger', cat:'Vegetable', color:'earth', taste:'pungent', nature:1},
- {name:'Bitter melon', cat:'Vegetable', color:'wood', taste:'bitter', nature:-1},
- {name:'Kale', cat:'Vegetable', color:'wood', taste:'bitter', nature:0},
- {name:'Seaweed', cat:'Vegetable', color:'water', taste:'salty', nature:-1},
- {name:'Garlic', cat:'Vegetable', color:'metal', taste:'pungent', nature:1},
- {name:'Celery', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1},
- {name:'Shiitake mushroom', cat:'Vegetable', color:'earth', taste:'sweet', nature:0},
- {name:'Sweet potato', cat:'Vegetable', color:'earth', taste:'sweet', nature:1},
- {name:'Potato', cat:'Vegetable', color:'earth', taste:'sweet', nature:0},
- {name:'Eggplant', cat:'Vegetable', color:'water', taste:'sweet', nature:-1},
- {name:'Beet', cat:'Vegetable', color:'fire', taste:'sweet', nature:0},
- {name:'Purple cabbage', cat:'Vegetable', color:'water', taste:'sweet', nature:-1},
- {name:'Chili pepper', cat:'Vegetable', color:'fire', taste:'pungent', nature:1},
- {name:'Leek', cat:'Vegetable', color:'wood', taste:'pungent', nature:1},
- {name:'Mustard greens', cat:'Vegetable', color:'wood', taste:'pungent', nature:1},
- {name:'Lotus root', cat:'Vegetable', color:'metal', taste:'sweet', nature:-1},
- {name:'Cauliflower', cat:'Vegetable', color:'metal', taste:'sweet', nature:0},
- {name:'Black fungus', cat:'Vegetable', color:'water', taste:'sweet', nature:0},
- {name:'Pumpkin', cat:'Vegetable', color:'earth', taste:'sweet', nature:1},
- {name:'Yam', cat:'Vegetable', color:'metal', taste:'sweet', nature:0},
- {name:'Asparagus', cat:'Vegetable', color:'wood', taste:'bitter', nature:-1},
+ {name:'Spinach', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1, season:['spring','fall']},
+ {name:'Broccoli', cat:'Vegetable', color:'wood', taste:'sweet', nature:0, season:['fall','winter','spring']},
+ {name:'Bok choy', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1, season:['fall','winter','spring']},
+ {name:'Cucumber', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1, season:['summer']},
+ {name:'Tomato', cat:'Vegetable', color:'fire', taste:'sour', nature:-1, season:['summer']},
+ {name:'Red bell pepper', cat:'Vegetable', color:'fire', taste:'pungent', nature:1, season:['summer','fall']},
+ {name:'Carrot', cat:'Vegetable', color:'earth', taste:'sweet', nature:0, season:['fall','winter']},
+ {name:'Daikon radish', cat:'Vegetable', color:'metal', taste:'pungent', nature:-1, season:['fall','winter']},
+ {name:'Onion', cat:'Vegetable', color:'metal', taste:'pungent', nature:1, season:['summer','fall']},
+ {name:'Ginger', cat:'Vegetable', color:'earth', taste:'pungent', nature:1, season:['fall']},
+ {name:'Bitter melon', cat:'Vegetable', color:'wood', taste:'bitter', nature:-1, season:['summer']},
+ {name:'Kale', cat:'Vegetable', color:'wood', taste:'bitter', nature:0, season:['fall','winter','spring']},
+ {name:'Seaweed', cat:'Vegetable', color:'water', taste:'salty', nature:-1, season:'all'},
+ {name:'Garlic', cat:'Vegetable', color:'metal', taste:'pungent', nature:1, season:['summer']},
+ {name:'Celery', cat:'Vegetable', color:'wood', taste:'sweet', nature:-1, season:['fall','winter','spring']},
+ {name:'Shiitake mushroom', cat:'Vegetable', color:'earth', taste:'sweet', nature:0, season:['fall','spring']},
+ {name:'Sweet potato', cat:'Vegetable', color:'earth', taste:'sweet', nature:1, season:['fall']},
+ {name:'Potato', cat:'Vegetable', color:'earth', taste:'sweet', nature:0, season:['summer','fall']},
+ {name:'Eggplant', cat:'Vegetable', color:'water', taste:'sweet', nature:-1, season:['summer']},
+ {name:'Beet', cat:'Vegetable', color:'fire', taste:'sweet', nature:0, season:['summer','fall']},
+ {name:'Purple cabbage', cat:'Vegetable', color:'water', taste:'sweet', nature:-1, season:['fall','winter']},
+ {name:'Chili pepper', cat:'Vegetable', color:'fire', taste:'pungent', nature:1, season:['summer','fall']},
+ {name:'Leek', cat:'Vegetable', color:'wood', taste:'pungent', nature:1, season:['fall','winter']},
+ {name:'Mustard greens', cat:'Vegetable', color:'wood', taste:'pungent', nature:1, season:['fall','winter','spring']},
+ {name:'Lotus root', cat:'Vegetable', color:'metal', taste:'sweet', nature:-1, season:['fall','winter']},
+ {name:'Cauliflower', cat:'Vegetable', color:'metal', taste:'sweet', nature:0, season:['fall','winter']},
+ {name:'Black fungus', cat:'Vegetable', color:'water', taste:'sweet', nature:0, season:'all'},
+ {name:'Pumpkin', cat:'Vegetable', color:'earth', taste:'sweet', nature:1, season:['fall']},
+ {name:'Yam', cat:'Vegetable', color:'metal', taste:'sweet', nature:0, season:['fall']},
+ {name:'Asparagus', cat:'Vegetable', color:'wood', taste:'bitter', nature:-1, season:['spring']},
  // Fruit
- {name:'Watermelon', cat:'Fruit', color:'fire', taste:'sweet', nature:-1},
- {name:'Goji berry', cat:'Fruit', color:'fire', taste:'sweet', nature:1},
- {name:'Lychee', cat:'Fruit', color:'fire', taste:'sweet', nature:1},
- {name:'Banana', cat:'Fruit', color:'earth', taste:'sweet', nature:-1},
- {name:'Longan', cat:'Fruit', color:'earth', taste:'sweet', nature:1},
- {name:'Pear', cat:'Fruit', color:'metal', taste:'sweet', nature:-1},
- {name:'Apple', cat:'Fruit', color:'metal', taste:'sour', nature:0},
- {name:'Dragon fruit', cat:'Fruit', color:'metal', taste:'sweet', nature:-1},
- {name:'Blueberry', cat:'Fruit', color:'water', taste:'sour', nature:0},
- {name:'Orange', cat:'Fruit', color:'fire', taste:'sour', nature:0},
- {name:'Grape', cat:'Fruit', color:'earth', taste:'sweet', nature:0},
- {name:'Peach', cat:'Fruit', color:'fire', taste:'sweet', nature:1},
- {name:'Mango', cat:'Fruit', color:'earth', taste:'sweet', nature:1},
- {name:'Kiwi', cat:'Fruit', color:'wood', taste:'sour', nature:-1},
- {name:'Strawberry', cat:'Fruit', color:'fire', taste:'sour', nature:-1},
- {name:'Cherry', cat:'Fruit', color:'fire', taste:'sweet', nature:1},
- {name:'Pomegranate', cat:'Fruit', color:'fire', taste:'sour', nature:0},
- {name:'Papaya', cat:'Fruit', color:'earth', taste:'sweet', nature:0},
- {name:'Persimmon', cat:'Fruit', color:'earth', taste:'sweet', nature:-1},
- {name:'Cantaloupe', cat:'Fruit', color:'earth', taste:'sweet', nature:-1},
- {name:'Pineapple', cat:'Fruit', color:'earth', taste:'sour', nature:0},
- {name:'Coconut', cat:'Fruit', color:'metal', taste:'sweet', nature:0},
- {name:'Lemon', cat:'Fruit', color:'earth', taste:'sour', nature:-1},
- {name:'Plum', cat:'Fruit', color:'water', taste:'sour', nature:0},
- {name:'Fig', cat:'Fruit', color:'water', taste:'sweet', nature:0},
- {name:'Jujube (red date)', cat:'Fruit', color:'fire', taste:'sweet', nature:1},
+ {name:'Watermelon', cat:'Fruit', color:'fire', taste:'sweet', nature:-1, season:['summer']},
+ {name:'Goji berry', cat:'Fruit', color:'fire', taste:'sweet', nature:1, season:['summer','fall']},
+ {name:'Lychee', cat:'Fruit', color:'fire', taste:'sweet', nature:1, season:['summer']},
+ {name:'Banana', cat:'Fruit', color:'earth', taste:'sweet', nature:-1, season:'all'},
+ {name:'Longan', cat:'Fruit', color:'earth', taste:'sweet', nature:1, season:['summer','fall']},
+ {name:'Pear', cat:'Fruit', color:'metal', taste:'sweet', nature:-1, season:['fall']},
+ {name:'Apple', cat:'Fruit', color:'metal', taste:'sour', nature:0, season:['fall']},
+ {name:'Dragon fruit', cat:'Fruit', color:'metal', taste:'sweet', nature:-1, season:['summer','fall']},
+ {name:'Blueberry', cat:'Fruit', color:'water', taste:'sour', nature:0, season:['summer']},
+ {name:'Orange', cat:'Fruit', color:'fire', taste:'sour', nature:0, season:['winter']},
+ {name:'Grape', cat:'Fruit', color:'earth', taste:'sweet', nature:0, season:['fall']},
+ {name:'Peach', cat:'Fruit', color:'fire', taste:'sweet', nature:1, season:['summer']},
+ {name:'Mango', cat:'Fruit', color:'earth', taste:'sweet', nature:1, season:['summer']},
+ {name:'Kiwi', cat:'Fruit', color:'wood', taste:'sour', nature:-1, season:['fall','winter']},
+ {name:'Strawberry', cat:'Fruit', color:'fire', taste:'sour', nature:-1, season:['spring']},
+ {name:'Cherry', cat:'Fruit', color:'fire', taste:'sweet', nature:1, season:['summer']},
+ {name:'Pomegranate', cat:'Fruit', color:'fire', taste:'sour', nature:0, season:['fall']},
+ {name:'Papaya', cat:'Fruit', color:'earth', taste:'sweet', nature:0, season:'all'},
+ {name:'Persimmon', cat:'Fruit', color:'earth', taste:'sweet', nature:-1, season:['fall','winter']},
+ {name:'Cantaloupe', cat:'Fruit', color:'earth', taste:'sweet', nature:-1, season:['summer']},
+ {name:'Pineapple', cat:'Fruit', color:'earth', taste:'sour', nature:0, season:'all'},
+ {name:'Coconut', cat:'Fruit', color:'metal', taste:'sweet', nature:0, season:'all'},
+ {name:'Lemon', cat:'Fruit', color:'earth', taste:'sour', nature:-1, season:['winter']},
+ {name:'Plum', cat:'Fruit', color:'water', taste:'sour', nature:0, season:['summer']},
+ {name:'Fig', cat:'Fruit', color:'water', taste:'sweet', nature:0, season:['summer','fall']},
+ {name:'Jujube (red date)', cat:'Fruit', color:'fire', taste:'sweet', nature:1, season:['fall']},
  // Protein
- {name:'Chicken', cat:'Protein', color:'earth', taste:'sweet', nature:1},
- {name:'Beef', cat:'Protein', color:'earth', taste:'sweet', nature:1},
- {name:'Lamb', cat:'Protein', color:'fire', taste:'sweet', nature:1},
- {name:'Duck', cat:'Protein', color:'metal', taste:'salty', nature:-1},
- {name:'White fish', cat:'Protein', color:'metal', taste:'sweet', nature:0},
- {name:'Shrimp', cat:'Protein', color:'metal', taste:'sweet', nature:1},
- {name:'Tofu', cat:'Protein', color:'metal', taste:'sweet', nature:-1},
- {name:'Egg', cat:'Protein', color:'earth', taste:'sweet', nature:0},
- {name:'Black beans', cat:'Protein', color:'water', taste:'salty', nature:0},
- {name:'Salmon', cat:'Protein', color:'fire', taste:'sweet', nature:0},
- {name:'Pork', cat:'Protein', color:'earth', taste:'sweet', nature:0},
- {name:'Walnut', cat:'Protein', color:'water', taste:'sweet', nature:1},
- {name:'Black sesame', cat:'Protein', color:'water', taste:'sweet', nature:0},
- {name:'Turkey', cat:'Protein', color:'earth', taste:'sweet', nature:0},
- {name:'Crab', cat:'Protein', color:'metal', taste:'salty', nature:-1},
- {name:'Oyster', cat:'Protein', color:'water', taste:'salty', nature:-1},
- {name:'Squid', cat:'Protein', color:'metal', taste:'salty', nature:0},
- {name:'Mung bean', cat:'Protein', color:'wood', taste:'sweet', nature:-1},
- {name:'Adzuki bean', cat:'Protein', color:'fire', taste:'sweet', nature:0},
- {name:'Kidney bean', cat:'Protein', color:'fire', taste:'sweet', nature:0},
- {name:'Chickpea', cat:'Protein', color:'earth', taste:'sweet', nature:0},
- {name:'Peanut', cat:'Protein', color:'earth', taste:'sweet', nature:1},
- {name:'Cashew', cat:'Protein', color:'earth', taste:'sweet', nature:1},
- {name:'Milk', cat:'Protein', color:'metal', taste:'sweet', nature:-1},
- {name:'Yogurt', cat:'Protein', color:'metal', taste:'sour', nature:-1},
+ {name:'Chicken', cat:'Protein', color:'earth', taste:'sweet', nature:1, season:'all'},
+ {name:'Beef', cat:'Protein', color:'earth', taste:'sweet', nature:1, season:'all'},
+ {name:'Lamb', cat:'Protein', color:'fire', taste:'sweet', nature:1, season:['fall','winter']},
+ {name:'Duck', cat:'Protein', color:'metal', taste:'salty', nature:-1, season:['fall','winter']},
+ {name:'White fish', cat:'Protein', color:'metal', taste:'sweet', nature:0, season:'all'},
+ {name:'Shrimp', cat:'Protein', color:'metal', taste:'sweet', nature:1, season:'all'},
+ {name:'Tofu', cat:'Protein', color:'metal', taste:'sweet', nature:-1, season:'all'},
+ {name:'Egg', cat:'Protein', color:'earth', taste:'sweet', nature:0, season:'all'},
+ {name:'Black beans', cat:'Protein', color:'water', taste:'salty', nature:0, season:'all'},
+ {name:'Salmon', cat:'Protein', color:'fire', taste:'sweet', nature:0, season:'all'},
+ {name:'Pork', cat:'Protein', color:'earth', taste:'sweet', nature:0, season:'all'},
+ {name:'Walnut', cat:'Protein', color:'water', taste:'sweet', nature:1, season:['fall']},
+ {name:'Black sesame', cat:'Protein', color:'water', taste:'sweet', nature:0, season:'all'},
+ {name:'Turkey', cat:'Protein', color:'earth', taste:'sweet', nature:0, season:'all'},
+ {name:'Crab', cat:'Protein', color:'metal', taste:'salty', nature:-1, season:['fall']},
+ {name:'Oyster', cat:'Protein', color:'water', taste:'salty', nature:-1, season:['winter']},
+ {name:'Squid', cat:'Protein', color:'metal', taste:'salty', nature:0, season:'all'},
+ {name:'Mung bean', cat:'Protein', color:'wood', taste:'sweet', nature:-1, season:'all'},
+ {name:'Adzuki bean', cat:'Protein', color:'fire', taste:'sweet', nature:0, season:'all'},
+ {name:'Kidney bean', cat:'Protein', color:'fire', taste:'sweet', nature:0, season:'all'},
+ {name:'Chickpea', cat:'Protein', color:'earth', taste:'sweet', nature:0, season:'all'},
+ {name:'Peanut', cat:'Protein', color:'earth', taste:'sweet', nature:1, season:['fall']},
+ {name:'Cashew', cat:'Protein', color:'earth', taste:'sweet', nature:1, season:'all'},
+ {name:'Milk', cat:'Protein', color:'metal', taste:'sweet', nature:-1, season:'all'},
+ {name:'Yogurt', cat:'Protein', color:'metal', taste:'sour', nature:-1, season:'all'},
 ];
+
+function getCurrentSeason(date = new Date()){
+ const m = date.getMonth(); // 0=Jan
+ if(m===11 || m<=1) return 'winter';
+ if(m<=4) return 'spring';
+ if(m<=7) return 'summer';
+ return 'fall';
+}
+function isInSeason(food, season = getCurrentSeason()){
+ return food.season === 'all' || food.season.includes(season);
+}
 
 const CATEGORIES = ['Grain','Vegetable','Fruit','Protein'];
 
@@ -364,13 +383,22 @@ function renderTabs(){
 function renderChips(){
  const chips = document.getElementById('chips');
  chips.innerHTML='';
- FOODS.filter(f=>f.cat===activeTab).forEach(f=>{
+ const inTab = FOODS.filter(f=>f.cat===activeTab);
+ inTab.sort((a,b)=> (isInSeason(b)?1:0) - (isInSeason(a)?1:0));
+ inTab.forEach(f=>{
  const c=document.createElement('div');
  c.className='chip';
- c.innerHTML=`<span class="dot" style="background:${ELEMENTS[f.color].hex}"></span>${f.name}`;
+ const badge = isInSeason(f) ? ` <span class="seasonal-badge" title="naturally in season right now">🌱</span>` : '';
+ c.innerHTML=`<span class="dot" style="background:${ELEMENTS[f.color].hex}"></span>${f.name}${badge}`;
  c.onclick=()=>addFood(f);
  chips.appendChild(c);
  });
+}
+
+function renderSeasonNow(){
+ const el = document.getElementById('seasonNow');
+ const season = getCurrentSeason();
+ el.textContent = `Now: ${season.charAt(0).toUpperCase()+season.slice(1)}`;
 }
 
 function renderLog(){
@@ -457,7 +485,9 @@ function renderTastes(){
 
 function suggestFoods(predicate, limit=2){
  const loggedNames = new Set(log.map(f=>f.name));
- return FOODS.filter(f=>predicate(f) && !loggedNames.has(f.name)).slice(0, limit).map(f=>f.name);
+ const candidates = FOODS.filter(f=>predicate(f) && !loggedNames.has(f.name));
+ candidates.sort((a,b)=> (isInSeason(b)?1:0) - (isInSeason(a)?1:0)); // in-season picks first
+ return candidates.slice(0, limit).map(f=>f.name);
 }
 
 function tipFor(predicate){
@@ -490,6 +520,11 @@ function renderInsight(){
  parts.push(`Your plate is leaning <b>warming</b> — a cooling food could bring it back to center.${tipFor(f=>f.nature<0)}`);
  } else if(avgNature < -0.4){
  parts.push(`Your plate is leaning <b>cooling</b> — something warming might balance it out.${tipFor(f=>f.nature>0)}`);
+ }
+ const outOfSeason = log.filter(f=>(f.cat==='Vegetable'||f.cat==='Fruit') && !isInSeason(f));
+ if(outOfSeason.length && parts.length<2){
+ const f = outOfSeason[0];
+ parts.push(`<b>${f.name}</b> isn't naturally in season right now — fresher picks grow better flavor and nutrition.${tipFor(x=>x.cat===f.cat && isInSeason(x))}`);
  }
  if(missingTastes.length && parts.length<2){
  const t = missingTastes[0];
@@ -580,6 +615,7 @@ function renderShoppingList(){
 }
 
 function render(){
+ renderSeasonNow();
  renderTabs();
  renderChips();
  renderLog();
