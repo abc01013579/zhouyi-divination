@@ -110,6 +110,15 @@
  }
  .back-link:hover{color:var(--ink);}
 
+ .card-header-row{display:flex;justify-content:space-between;align-items:baseline;}
+ .card-header-row h2{margin:0;}
+ .clear-btn{
+ font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;
+ padding:4px 10px;border:1px solid var(--line);border-radius:20px;background:transparent;
+ color:var(--ink-soft);cursor:pointer;
+ }
+ .clear-btn:hover{border-color:var(--fire);color:var(--fire);}
+
  .shopping-item{
  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
  padding:9px 4px;border-bottom:1px solid var(--line);
@@ -168,7 +177,10 @@
  </div>
 
  <div class="card log-card">
+ <div class="card-header-row">
  <h2>This Week's Plate</h2>
+ <button class="clear-btn" id="clearBtn">Clear</button>
+ </div>
  <div class="sub" id="logSub">nothing logged yet</div>
  <div id="logList"></div>
  </div>
@@ -553,6 +565,14 @@ function render(){
  renderInsight();
  renderShoppingList();
 }
+
+document.getElementById('clearBtn').onclick = () => {
+ if(log.length===0) return;
+ if(!confirm("Clear this week's plate? This can't be undone.")) return;
+ log = [];
+ saveLog();
+ render();
+};
 
 loadLog();
 </script>
