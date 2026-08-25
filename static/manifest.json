@@ -3,8 +3,8 @@
   "short_name": "周易",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#faf7f0",
-  "theme_color": "#faf7f0",
+  "background_color": "#f2c14e",
+  "theme_color": "#f2c14e",
   "icons": [
     {
       "src": "/static/icon-192.png",
