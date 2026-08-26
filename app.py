@@ -36,7 +36,6 @@ UI_STRINGS = {
         "journal_link_label": "随笔",
         "bazi_link_label": "八字五行",
         "balance_plate_link_label": "Shopping List",
-        "weiqi_link_label": "围棋",
     },
     "en": {
         "html_lang": "en",
@@ -66,7 +65,6 @@ UI_STRINGS = {
         "journal_link_label": "Journal",
         "bazi_link_label": "BaZi Five Elements",
         "balance_plate_link_label": "Shopping List",
-        "weiqi_link_label": "Go (Weiqi)",
     },
 }
 
