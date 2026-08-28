@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 
 from bazi import calculate_bazi
+from dca import calculate_dca
 from yijing_core import cast_reading
 
 app = Flask(__name__)
@@ -36,6 +37,7 @@ UI_STRINGS = {
         "journal_link_label": "随笔",
         "bazi_link_label": "八字五行",
         "balance_plate_link_label": "Shopping List",
+        "dca_link_label": "复利计算器",
     },
     "en": {
         "html_lang": "en",
@@ -65,6 +67,44 @@ UI_STRINGS = {
         "journal_link_label": "Journal",
         "bazi_link_label": "BaZi Five Elements",
         "balance_plate_link_label": "Shopping List",
+        "dca_link_label": "DCA Calculator",
+    },
+}
+
+DCA_STRINGS = {
+    "zh": {
+        "html_lang": "zh",
+        "title": "复利计算器",
+        "heading": "定投复利计算器",
+        "hint": "输入每年投入金额和预期年化收益率，查看 5、10、20、30、40、50、60 年后的复利总额。假设每年年初投入，全年参与复利增长。",
+        "amount_label": "每年投入金额",
+        "rate_label": "预期年化收益率（%）",
+        "submit": "计算",
+        "years_col": "年数",
+        "contributed_col": "累计投入",
+        "total_col": "复利总额",
+        "growth_col": "增值部分",
+        "error_incomplete": "请输入完整的投入金额和收益率。",
+        "lang_switch_label": "English",
+        "lang_switch_target": "en",
+        "index_link_label": "周易摇卦",
+    },
+    "en": {
+        "html_lang": "en",
+        "title": "DCA Calculator",
+        "heading": "DCA Compounding Calculator",
+        "hint": "Enter a yearly investment amount and an expected annual growth rate to see the compounded total after 5, 10, 20, 30, 40, 50, and 60 years. Assumes each year's contribution is made at the start of that year and compounds through the full year.",
+        "amount_label": "Yearly investment amount",
+        "rate_label": "Expected annual growth rate (%)",
+        "submit": "Calculate",
+        "years_col": "Years",
+        "contributed_col": "Total contributed",
+        "total_col": "Total value",
+        "growth_col": "Growth",
+        "error_incomplete": "Please enter both the yearly amount and the growth rate.",
+        "lang_switch_label": "中文",
+        "lang_switch_target": "zh",
+        "index_link_label": "Zhouyi Divination",
     },
 }
 
@@ -174,6 +214,32 @@ def bazi_page():
 @app.route("/balance-plate")
 def balance_plate_page():
     return render_template("balance_plate.html")
+
+
+@app.route("/dca", methods=["GET", "POST"])
+def dca_page():
+    result = None
+    error = None
+    submitted = {}
+    lang = resolve_lang(request)
+    t = DCA_STRINGS[lang]
+
+    if request.method == "POST":
+        submitted = {
+            field: request.form.get(field, "").strip() for field in ("amount", "rate")
+        }
+
+        try:
+            amount = float(submitted["amount"])
+            rate = float(submitted["rate"])
+        except ValueError:
+            error = t["error_incomplete"]
+        else:
+            result = calculate_dca(amount, rate)
+
+    return render_template(
+        "dca.html", result=result, error=error, submitted=submitted, lang=lang, t=t
+    )
 
 
 if __name__ == "__main__":

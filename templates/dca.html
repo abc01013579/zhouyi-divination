@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="{{ t.html_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ t.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon-32.png') }}" sizes="32x32">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+</head>
+<body>
+  <main>
+    <div class="lang-switch no-print">
+      <a href="{{ url_for('index') }}?lang={{ lang }}">{{ t.index_link_label }}</a>
+      <a href="?lang={{ t.lang_switch_target }}">{{ t.lang_switch_label }}</a>
+    </div>
+    <h1>{{ t.heading }}</h1>
+    <p class="hint no-print">{{ t.hint }}</p>
+
+    {% if error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" class="yao-form no-print">
+      <input type="hidden" name="lang" value="{{ lang }}">
+      <label>
+        {{ t.amount_label }}
+        <input type="number" name="amount" min="0" step="any" required value="{{ submitted.amount if submitted else '' }}">
+      </label>
+      <label>
+        {{ t.rate_label }}
+        <input type="number" name="rate" step="any" required value="{{ submitted.rate if submitted else '' }}">
+      </label>
+      <button type="submit">{{ t.submit }}</button>
+    </form>
+
+    {% if result %}
+      <section class="result">
+        <table class="dca-table">
+          <thead>
+            <tr>
+              <th>{{ t.years_col }}</th>
+              <th>{{ t.contributed_col }}</th>
+              <th>{{ t.total_col }}</th>
+              <th>{{ t.growth_col }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in result %}
+              <tr>
+                <td>{{ row.years }}</td>
+                <td>{{ "{:,.0f}".format(row.contributed) }}</td>
+                <td>{{ "{:,.0f}".format(row.total_value) }}</td>
+                <td>{{ "{:,.0f}".format(row.growth) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>

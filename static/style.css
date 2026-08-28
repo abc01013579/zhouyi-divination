@@ -251,6 +251,38 @@ h1 {
   color: #fff;
 }
 
+.dca-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.9rem;
+}
+
+.dca-table th,
+.dca-table td {
+  padding: 0.6rem 0.75rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+
+.dca-table th:first-child,
+.dca-table td:first-child {
+  text-align: left;
+}
+
+.dca-table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.dca-table tr:last-child td {
+  border-bottom: none;
+}
+
 @media print {
   .no-print {
     display: none !important;
