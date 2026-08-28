@@ -251,6 +251,10 @@ h1 {
   color: #fff;
 }
 
+.dca-form {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .dca-table {
   width: 100%;
   border-collapse: collapse;
