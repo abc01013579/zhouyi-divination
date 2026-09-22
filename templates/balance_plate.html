@@ -80,6 +80,11 @@
  .tab{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;padding:7px 14px;border:1px solid var(--line);border-radius:20px;background:transparent;cursor:pointer;color:var(--ink-soft);}
  .tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 
+ .group-toggle{display:flex;gap:4px;margin-bottom:10px;}
+ .group-btn{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:4px 10px;border:1px solid transparent;border-radius:3px;background:transparent;cursor:pointer;color:var(--ink-soft);}
+ .group-btn.active{border-color:var(--line);color:var(--ink);background:var(--card);}
+ .chip-cat{font-size:9px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em;margin-left:4px;}
+
  .chips{display:flex;flex-wrap:wrap;gap:8px;}
  .chip{
  display:flex;align-items:center;gap:7px;
@@ -192,6 +197,7 @@
  <span class="season-now" id="seasonNow"></span>
  </div>
  <div class="sub">tap a food to add it to this week's plate — 🌱 marks what's naturally in season right now</div>
+ <div class="group-toggle" id="groupToggle"></div>
  <div class="tabs" id="tabs"></div>
  <div class="chips" id="chips"></div>
  </div>
@@ -348,6 +354,17 @@ function isInSeason(food, season = getCurrentSeason()){
 
 const CATEGORIES = ['Grain','Vegetable','Fruit','Protein'];
 
+// secondary ways to browse the same FOODS list: by category (default),
+// by five-element color, or by five-flavor taste. Each mode says which
+// values become the tab row, how to LABEL a tab, and how to TEST whether
+// a food belongs under a given tab value.
+const GROUP_MODES = {
+ category: {label:'Category', values:CATEGORIES, tabLabel:v=>v, test:(f,v)=>f.cat===v},
+ color: {label:'Color', values:CYCLE, tabLabel:v=>ELEMENTS[v].label, test:(f,v)=>f.color===v},
+ taste: {label:'Taste', values:TASTES, tabLabel:v=>v.charAt(0).toUpperCase()+v.slice(1), test:(f,v)=>f.taste===v},
+};
+let groupMode = 'category';
+
 let log = [];
 let activeTab = 'Grain';
 
@@ -384,14 +401,31 @@ function removeFood(id){
  render();
 }
 
+function renderGroupToggle(){
+ const el = document.getElementById('groupToggle');
+ el.innerHTML='';
+ Object.keys(GROUP_MODES).forEach(mode=>{
+ const b=document.createElement('button');
+ b.className='group-btn'+(mode===groupMode?' active':'');
+ b.textContent=GROUP_MODES[mode].label;
+ b.onclick=()=>{
+ groupMode=mode;
+ activeTab=GROUP_MODES[mode].values[0];
+ render();
+ };
+ el.appendChild(b);
+ });
+}
+
 function renderTabs(){
  const tabs = document.getElementById('tabs');
  tabs.innerHTML='';
- CATEGORIES.forEach(cat=>{
+ const mode = GROUP_MODES[groupMode];
+ mode.values.forEach(v=>{
  const b=document.createElement('button');
- b.className='tab'+(cat===activeTab?' active':'');
- b.textContent=cat;
- b.onclick=()=>{activeTab=cat;render();};
+ b.className='tab'+(v===activeTab?' active':'');
+ b.textContent=mode.tabLabel(v);
+ b.onclick=()=>{activeTab=v;render();};
  tabs.appendChild(b);
  });
 }
@@ -399,13 +433,15 @@ function renderTabs(){
 function renderChips(){
  const chips = document.getElementById('chips');
  chips.innerHTML='';
- const inTab = FOODS.filter(f=>f.cat===activeTab);
+ const mode = GROUP_MODES[groupMode];
+ const inTab = FOODS.filter(f=>mode.test(f,activeTab));
  inTab.sort((a,b)=> (isInSeason(b)?1:0) - (isInSeason(a)?1:0));
  inTab.forEach(f=>{
  const c=document.createElement('div');
  c.className='chip';
  const badge = isInSeason(f) ? ` <span class="seasonal-badge" title="naturally in season right now">🌱</span>` : '';
- c.innerHTML=`<span class="dot" style="background:${ELEMENTS[f.color].hex}"></span>${f.name}${badge}`;
+ const catTag = groupMode!=='category' ? ` <span class="chip-cat">${f.cat}</span>` : '';
+ c.innerHTML=`<span class="dot" style="background:${ELEMENTS[f.color].hex}"></span>${f.name}${badge}${catTag}`;
  c.onclick=()=>addFood(f);
  chips.appendChild(c);
  });
@@ -649,6 +685,7 @@ function renderShoppingList(){
 
 function render(){
  renderSeasonNow();
+ renderGroupToggle();
  renderTabs();
  renderChips();
  renderLog();
