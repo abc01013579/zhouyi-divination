@@ -36,6 +36,7 @@ UI_STRINGS = {
         "journal_link_label": "随笔",
         "balance_plate_link_label": "Shopping List",
         "dca_link_label": "复利计算器",
+        "read_link_label": "朗读",
     },
     "en": {
         "html_lang": "en",
@@ -65,6 +66,7 @@ UI_STRINGS = {
         "journal_link_label": "Journal",
         "balance_plate_link_label": "Shopping List",
         "dca_link_label": "DCA Calculator",
+        "read_link_label": "Read Aloud",
     },
 }
 
@@ -99,6 +101,61 @@ DCA_STRINGS = {
         "total_col": "Total value",
         "growth_col": "Growth",
         "error_incomplete": "Please enter both the yearly amount and the growth rate.",
+        "lang_switch_label": "中文",
+        "lang_switch_target": "zh",
+        "index_link_label": "Zhouyi Divination",
+    },
+}
+
+READ_STRINGS = {
+    "zh": {
+        "html_lang": "zh",
+        "title": "朗读",
+        "heading": "朗读",
+        "hint": "粘贴文字，或打开 PDF / TXT 文件，中文用中文声音读，英文用英文声音读。文字只在本机处理，不上传。",
+        "text_placeholder": "在此粘贴文字……",
+        "file_label": "打开 PDF 或 TXT",
+        "play": "朗读",
+        "pause": "暂停",
+        "resume": "继续",
+        "stop": "停止",
+        "rate_label": "语速",
+        "zh_voice_label": "中文声音",
+        "en_voice_label": "英文声音",
+        "auto_voice": "自动",
+        "loading_pdf": "正在读取 PDF：第 {page} / {pages} 页",
+        "loaded": "已载入 {name}",
+        "no_text": "这个文件里没有可读的文字（可能是扫描图片）。",
+        "file_error": "无法读取这个文件。",
+        "nothing": "请先粘贴文字或打开文件。",
+        "no_speech": "此浏览器不支持朗读。",
+        "done": "读完了。",
+        "lang_switch_label": "English",
+        "lang_switch_target": "en",
+        "index_link_label": "周易摇卦",
+    },
+    "en": {
+        "html_lang": "en",
+        "title": "Read Aloud",
+        "heading": "Read Aloud",
+        "hint": "Paste text, or open a PDF / TXT file. Chinese is read with a Chinese voice, English with an English voice. Everything stays on this device; nothing is uploaded.",
+        "text_placeholder": "Paste text here…",
+        "file_label": "Open PDF or TXT",
+        "play": "Read",
+        "pause": "Pause",
+        "resume": "Resume",
+        "stop": "Stop",
+        "rate_label": "Speed",
+        "zh_voice_label": "Chinese voice",
+        "en_voice_label": "English voice",
+        "auto_voice": "Automatic",
+        "loading_pdf": "Reading PDF: page {page} / {pages}",
+        "loaded": "Loaded {name}",
+        "no_text": "No readable text in this file (it may be a scanned image).",
+        "file_error": "Couldn't read this file.",
+        "nothing": "Paste some text or open a file first.",
+        "no_speech": "This browser can't read aloud.",
+        "done": "Finished.",
         "lang_switch_label": "中文",
         "lang_switch_target": "zh",
         "index_link_label": "Zhouyi Divination",
@@ -169,6 +226,12 @@ def dca_page():
     return render_template(
         "dca.html", result=result, error=error, submitted=submitted, lang=lang, t=t
     )
+
+
+@app.route("/read")
+def read_page():
+    lang = resolve_lang(request)
+    return render_template("read.html", lang=lang, t=READ_STRINGS[lang])
 
 
 if __name__ == "__main__":

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="{{ t.html_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ t.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon-32.png') }}" sizes="32x32">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+</head>
+<body>
+  <main>
+    <div class="lang-switch">
+      <a href="{{ url_for('index') }}?lang={{ lang }}">{{ t.index_link_label }}</a>
+      <a href="?lang={{ t.lang_switch_target }}">{{ t.lang_switch_label }}</a>
+    </div>
+    <h1>{{ t.heading }}</h1>
+    <p class="hint">{{ t.hint }}</p>
+
+    <section class="read-card">
+      <textarea id="text" class="read-text" placeholder="{{ t.text_placeholder }}"></textarea>
+
+      <label class="read-file">
+        {{ t.file_label }}
+        <input type="file" id="file" accept=".pdf,.txt,application/pdf,text/plain">
+      </label>
+
+      <div class="read-controls">
+        <button type="button" id="play">{{ t.play }}</button>
+        <button type="button" id="stop" class="secondary">{{ t.stop }}</button>
+      </div>
+
+      <div class="read-settings">
+        <label>
+          {{ t.rate_label }} <span id="rate-value">1.0</span>
+          <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
+        </label>
+        <label>
+          {{ t.zh_voice_label }}
+          <select id="zh-voice"><option value="">{{ t.auto_voice }}</option></select>
+        </label>
+        <label>
+          {{ t.en_voice_label }}
+          <select id="en-voice"><option value="">{{ t.auto_voice }}</option></select>
+        </label>
+      </div>
+
+      <p id="status" class="read-status"></p>
+      <p id="now" class="read-now"></p>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    var T = {{ t | tojson }};
+    var PDFJS_BASE = "https://unpkg.com/pdfjs-dist@3.11.174/";
+
+    var textEl = document.getElementById("text");
+    var fileEl = document.getElementById("file");
+    var playEl = document.getElementById("play");
+    var stopEl = document.getElementById("stop");
+    var rateEl = document.getElementById("rate");
+    var rateValueEl = document.getElementById("rate-value");
+    var zhVoiceEl = document.getElementById("zh-voice");
+    var enVoiceEl = document.getElementById("en-voice");
+    var statusEl = document.getElementById("status");
+    var nowEl = document.getElementById("now");
+
+    var synth = window.speechSynthesis;
+    var chunks = [];        // [{lang: "zh" | "en", text: "..."}]
+    var builtFrom = null;   // the text chunks were made from
+    var idx = 0;            // next chunk to read
+    var playing = false;
+    var run = 0;            // bumped on every start/stop, so a stale onend does nothing
+
+    // ---- saved settings (this device only) ----
+    function load(key) { try { return localStorage.getItem("read." + key); } catch (e) { return null; } }
+    function save(key, v) { try { localStorage.setItem("read." + key, v); } catch (e) {} }
+
+    textEl.value = load("text") || "";
+    if (load("rate")) rateEl.value = load("rate");
+    rateValueEl.textContent = Number(rateEl.value).toFixed(1);
+
+    function fill(s, vars) {
+      return s.replace(/\{(\w+)\}/g, function (m, k) { return vars[k]; });
+    }
+    function setStatus(s) { statusEl.textContent = s || ""; }
+
+    // ---- splitting text into chunks a voice can read ----
+    var HAN = /[　-〿㐀-䶿一-鿿豈-﫿＀-￯]/;
+    var LATIN = /[A-Za-zÀ-ɏ]/;
+    var MAXCHUNK = 180;
+
+    // runs:  split one sentence where it changes between Chinese and English;
+    // digits, spaces and punctuation stay with the run they're in
+    function runs(sentence) {
+      var out = [], cur = null, lead = "";
+      for (var ch of sentence) {
+        var lang = HAN.test(ch) ? "zh" : LATIN.test(ch) ? "en" : null;
+        if (lang === null) {
+          if (cur) cur.text += ch; else lead += ch;
+        } else if (cur && cur.lang === lang) {
+          cur.text += ch;
+        } else {
+          cur = { lang: lang, text: (cur ? "" : lead) + ch };
+          out.push(cur);
+        }
+      }
+      return out;
+    }
+
+    // cut:  split a long run at a comma or space so no chunk is too long
+    function cut(run) {
+      var out = [], s = run.text;
+      while (s.length > MAXCHUNK) {
+        var head = s.slice(0, MAXCHUNK);
+        var at = Math.max(head.lastIndexOf("，"), head.lastIndexOf(","),
+                          head.lastIndexOf("、"), head.lastIndexOf(" "));
+        if (at < MAXCHUNK / 3) at = MAXCHUNK - 1;
+        out.push({ lang: run.lang, text: s.slice(0, at + 1) });
+        s = s.slice(at + 1);
+      }
+      out.push({ lang: run.lang, text: s });
+      return out;
+    }
+
+    function makeChunks(text) {
+      // one line break inside a paragraph (common in PDFs) is not a stop:
+      // between two Chinese characters it just goes, elsewhere it's a space
+      var flat = text.replace(/\r/g, "").replace(/([^\n])[ \t]*\n(?!\n)[ \t]*(.?)/gu,
+        function (m, before, after) {
+          return before + (HAN.test(before) && HAN.test(after) ? "" : " ") + after;
+        });
+      flat = flat.replace(/([.!?;:])\s+/g, "$1\n\n");   // English sentence ends
+      var sentences = flat.match(/[^。！？；!?;\n]+[。！？；!?;]*|\n+/g) || [];
+      var out = [];
+      sentences.forEach(function (s) {
+        runs(s).forEach(function (r) {
+          cut(r).forEach(function (c) {
+            if (/[\p{L}\p{N}]/u.test(c.text)) out.push(c);
+          });
+        });
+      });
+      return out;
+    }
+
+    // ---- voices ----
+    var PREFER = { zh: ["zh-cn", "zh-tw", "zh-hk"], en: ["en-us", "en-gb"] };
+
+    function voicesFor(prefix) {
+      return synth.getVoices().filter(function (v) {
+        return v.lang.replace("_", "-").toLowerCase().indexOf(prefix) === 0;
+      });
+    }
+
+    // sortedVoices:  voices for "zh" or "en", the preferred regions first
+    function sortedVoices(lang) {
+      return voicesFor(lang).sort(function (a, b) {
+        return rank(a, PREFER[lang]) - rank(b, PREFER[lang]);
+      });
+    }
+
+    function fillVoices(select, lang) {
+      var keep = select.value || load(select.id) || "";
+      while (select.options.length > 1) select.remove(1);
+      var list = sortedVoices(lang);
+      list.forEach(function (v) {
+        var o = document.createElement("option");
+        o.value = v.name;
+        o.textContent = v.name + " (" + v.lang + ")";
+        select.appendChild(o);
+      });
+      if (list.some(function (v) { return v.name === keep; })) select.value = keep;
+    }
+
+    // rank:  lower is better -- the preferred regions first
+    function rank(v, preferred) {
+      var lang = v.lang.replace("_", "-").toLowerCase();
+      var i = preferred.indexOf(lang);
+      return i < 0 ? preferred.length : i;
+    }
+
+    function updateVoices() {
+      fillVoices(zhVoiceEl, "zh");
+      fillVoices(enVoiceEl, "en");
+    }
+
+    function voiceFor(lang) {
+      var select = lang === "zh" ? zhVoiceEl : enVoiceEl;
+      var all = synth.getVoices();
+      for (var i = 0; i < all.length; i++)
+        if (all[i].name === select.value) return all[i];
+      return sortedVoices(lang)[0] || null;
+    }
+
+    // ---- playing ----
+    function speakNext(myRun) {
+      if (myRun !== run || !playing) return;
+      if (idx >= chunks.length) {
+        finish(T.done);
+        return;
+      }
+      var c = chunks[idx];
+      var u = new SpeechSynthesisUtterance(c.text);
+      var v = voiceFor(c.lang);
+      u.lang = v ? v.lang : (c.lang === "zh" ? "zh-CN" : "en-US");
+      if (v) u.voice = v;
+      u.rate = Number(rateEl.value);
+      u.onend = function () {
+        if (myRun !== run) return;
+        idx++;
+        speakNext(myRun);
+      };
+      u.onerror = function (e) {
+        if (myRun !== run || e.error === "interrupted" || e.error === "canceled") return;
+        idx++;                      // skip a chunk the voice couldn't read
+        speakNext(myRun);
+      };
+      nowEl.textContent = c.text.trim();
+      setStatus((idx + 1) + " / " + chunks.length);
+      synth.speak(u);
+    }
+
+    function start() {
+      if (!synth) { setStatus(T.no_speech); return; }
+      var text = textEl.value;
+      if (text !== builtFrom) {     // new or edited text: start from the top
+        chunks = makeChunks(text);
+        builtFrom = text;
+        idx = 0;
+      }
+      if (chunks.length === 0) { setStatus(T.nothing); return; }
+      if (idx >= chunks.length) idx = 0;
+      playing = true;
+      run++;
+      if (synth.speaking || synth.pending)
+        synth.cancel();
+      playEl.textContent = T.pause;
+      speakNext(run);
+    }
+
+    // pause:  stop speaking, but keep idx -- resume repeats the current chunk
+    function pause() {
+      playing = false;
+      run++;
+      synth.cancel();
+      playEl.textContent = T.resume;
+    }
+
+    function finish(message) {
+      playing = false;
+      run++;
+      if (synth) synth.cancel();
+      idx = 0;
+      playEl.textContent = T.play;
+      nowEl.textContent = "";
+      setStatus(message);
+    }
+
+    playEl.addEventListener("click", function () {
+      if (playing) pause(); else start();
+    });
+    stopEl.addEventListener("click", function () { finish(""); });
+
+    textEl.addEventListener("input", function () {
+      save("text", textEl.value);
+      if (!playing && builtFrom !== null) {
+        builtFrom = null;
+        idx = 0;
+        playEl.textContent = T.play;
+      }
+    });
+    rateEl.addEventListener("input", function () {
+      rateValueEl.textContent = Number(rateEl.value).toFixed(1);
+      save("rate", rateEl.value);
+    });
+    [zhVoiceEl, enVoiceEl].forEach(function (s) {
+      s.addEventListener("change", function () { save(s.id, s.value); });
+    });
+
+    // ---- files ----
+    function loadScript(src) {
+      return new Promise(function (resolve, reject) {
+        var s = document.createElement("script");
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function pdfText(file) {
+      if (!window.pdfjsLib) {
+        await loadScript(PDFJS_BASE + "build/pdf.min.js");
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + "build/pdf.worker.min.js";
+      }
+      var pdf = await window.pdfjsLib.getDocument({
+        data: await file.arrayBuffer(),
+        cMapUrl: PDFJS_BASE + "cmaps/",     // needed for many Chinese PDFs
+        cMapPacked: true,
+        standardFontDataUrl: PDFJS_BASE + "standard_fonts/"
+      }).promise;
+      var pages = [];
+      for (var i = 1; i <= pdf.numPages; i++) {
+        setStatus(fill(T.loading_pdf, { page: i, pages: pdf.numPages }));
+        var content = await (await pdf.getPage(i)).getTextContent();
+        var s = "";
+        content.items.forEach(function (item) {
+          s += item.str;
+          if (item.hasEOL) s += "\n";
+        });
+        pages.push(s);
+      }
+      return pages.join("\n\n");
+    }
+
+    fileEl.addEventListener("change", async function () {
+      var file = fileEl.files[0];
+      if (!file) return;
+      finish("");
+      try {
+        var isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+        var text = isPdf ? await pdfText(file) : await file.text();
+        if (!/[\p{L}\p{N}]/u.test(text)) {
+          setStatus(T.no_text);
+        } else {
+          textEl.value = text.trim();
+          save("text", textEl.value);
+          builtFrom = null;
+          setStatus(fill(T.loaded, { name: file.name }));
+        }
+      } catch (e) {
+        setStatus(T.file_error);
+      }
+      fileEl.value = "";
+    });
+
+    if (synth) {
+      updateVoices();
+      if ("onvoiceschanged" in synth) synth.onvoiceschanged = updateVoices;
+    } else {
+      setStatus(T.no_speech);
+      playEl.disabled = true;
+    }
+
+  })();
+  </script>
+</body>
+</html>
