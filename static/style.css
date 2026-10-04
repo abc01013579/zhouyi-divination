@@ -331,14 +331,13 @@ h1 {
 }
 
 .read-controls {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
+  display: flex;
   gap: 0.6rem;
 }
 
 .read-controls button {
-  padding: 0.7rem;
-  font-size: 1rem;
+  padding: 0.4rem 1.2rem;
+  font-size: 0.95rem;
   border: none;
   border-radius: 8px;
   background: var(--accent);
