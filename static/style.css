@@ -41,6 +41,10 @@ main {
   max-width: 640px;
 }
 
+main.wide {
+  max-width: 960px;
+}
+
 h1 {
   text-align: center;
   font-weight: 600;
@@ -300,6 +304,7 @@ h1 {
 
 .read-text {
   width: 100%;
+  height: 60vh;
   min-height: 12rem;
   resize: vertical;
   font: inherit;

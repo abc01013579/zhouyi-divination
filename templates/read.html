@@ -9,7 +9,7 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
 </head>
 <body>
-  <main>
+  <main class="wide">
     <div class="lang-switch">
       <a href="{{ url_for('index') }}?lang={{ lang }}">{{ t.index_link_label }}</a>
       <a href="?lang={{ t.lang_switch_target }}">{{ t.lang_switch_label }}</a>
