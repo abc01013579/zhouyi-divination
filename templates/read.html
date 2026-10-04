@@ -221,12 +221,21 @@
       synth.speak(u);
     }
 
+    // chosenText:  the selected text; else from the cursor to the end;
+    // else (no cursor, or cursor at the very end) all of it
+    function chosenText() {
+      var text = textEl.value, a = textEl.selectionStart, b = textEl.selectionEnd;
+      if (a !== b) return text.slice(a, b);
+      if (a > 0 && a < text.length) return text.slice(a);
+      return text;
+    }
+
     function start() {
       if (!synth) { setStatus(T.no_speech); return; }
-      var text = textEl.value;
-      if (text !== builtFrom) {     // new or edited text: start from the top
-        chunks = makeChunks(text);
-        builtFrom = text;
+      var key = textEl.selectionStart + ":" + textEl.selectionEnd + ":" + textEl.value;
+      if (key !== builtFrom) {      // new text or new selection: start from its top
+        chunks = makeChunks(chosenText());
+        builtFrom = key;
         idx = 0;
       }
       if (chunks.length === 0) { setStatus(T.nothing); return; }
