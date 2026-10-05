@@ -317,6 +317,23 @@ h1 {
   color: var(--text);
 }
 
+.read-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.read-tools button {
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  cursor: pointer;
+}
+
 .read-file {
   display: flex;
   flex-wrap: wrap;

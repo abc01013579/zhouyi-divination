@@ -20,10 +20,14 @@
     <section class="read-card">
       <textarea id="text" class="read-text" placeholder="{{ t.text_placeholder }}"></textarea>
 
-      <label class="read-file">
-        {{ t.file_label }}
-        <input type="file" id="file" accept=".pdf,.txt,application/pdf,text/plain">
-      </label>
+      <div class="read-tools">
+        <button type="button" id="paste">{{ t.paste }}</button>
+        <button type="button" id="clear">{{ t.clear }}</button>
+        <label class="read-file">
+          {{ t.file_label }}
+          <input type="file" id="file" accept=".pdf,.txt,application/pdf,text/plain">
+        </label>
+      </div>
 
       <div class="read-controls">
         <button type="button" id="play">{{ t.play }}</button>
@@ -57,6 +61,8 @@
 
     var textEl = document.getElementById("text");
     var fileEl = document.getElementById("file");
+    var pasteEl = document.getElementById("paste");
+    var clearEl = document.getElementById("clear");
     var playEl = document.getElementById("play");
     var stopEl = document.getElementById("stop");
     var rateEl = document.getElementById("rate");
@@ -287,6 +293,31 @@
       s.addEventListener("change", function () { save(s.id, s.value); });
     });
 
+    // ---- paste / clear ----
+    // setText:  replace everything in the box, as if newly loaded
+    function setText(text) {
+      finish("");
+      textEl.value = text;
+      save("text", text);
+      builtFrom = null;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      pasteEl.addEventListener("click", async function () {
+        try {
+          setText((await navigator.clipboard.readText()).trim());
+        } catch (e) {
+          setStatus(T.paste_error);
+        }
+      });
+    } else {
+      pasteEl.hidden = true;        // this browser can't read the clipboard
+    }
+    clearEl.addEventListener("click", function () {
+      setText("");
+      textEl.focus();
+    });
+
     // ---- files ----
     function loadScript(src) {
       return new Promise(function (resolve, reject) {
@@ -333,9 +364,7 @@
         if (!/[\p{L}\p{N}]/u.test(text)) {
           setStatus(T.no_text);
         } else {
-          textEl.value = text.trim();
-          save("text", textEl.value);
-          builtFrom = null;
+          setText(text.trim());
           setStatus(fill(T.loaded, { name: file.name }));
         }
       } catch (e) {
