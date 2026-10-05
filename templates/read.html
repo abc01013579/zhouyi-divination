@@ -21,12 +21,11 @@
       <textarea id="text" class="read-text" placeholder="{{ t.text_placeholder }}"></textarea>
 
       <div class="read-tools">
-        <button type="button" id="paste">{{ t.paste }}</button>
-        <button type="button" id="clear">{{ t.clear }}</button>
         <label class="read-file">
           {{ t.file_label }}
           <input type="file" id="file" accept=".pdf,.txt,application/pdf,text/plain">
         </label>
+        <button type="button" id="clear">{{ t.clear }}</button>
       </div>
 
       <div class="read-controls">
@@ -61,7 +60,6 @@
 
     var textEl = document.getElementById("text");
     var fileEl = document.getElementById("file");
-    var pasteEl = document.getElementById("paste");
     var clearEl = document.getElementById("clear");
     var playEl = document.getElementById("play");
     var stopEl = document.getElementById("stop");
@@ -293,7 +291,7 @@
       s.addEventListener("change", function () { save(s.id, s.value); });
     });
 
-    // ---- paste / clear ----
+    // ---- clear ----
     // setText:  replace everything in the box, as if newly loaded
     function setText(text) {
       finish("");
@@ -302,17 +300,6 @@
       builtFrom = null;
     }
 
-    if (navigator.clipboard && navigator.clipboard.readText) {
-      pasteEl.addEventListener("click", async function () {
-        try {
-          setText((await navigator.clipboard.readText()).trim());
-        } catch (e) {
-          setStatus(T.paste_error);
-        }
-      });
-    } else {
-      pasteEl.hidden = true;        // this browser can't read the clipboard
-    }
     clearEl.addEventListener("click", function () {
       setText("");
       textEl.focus();
