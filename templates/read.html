@@ -124,9 +124,9 @@
     var MARKS = [[/[ñ¿¡]/g, { es: 3 }], [/[ãõ]/g, { pt: 3 }], [/[œèëïîûù]/g, { fr: 2 }],
                  [/[çê]/g, { fr: 1, pt: 1 }]];
 
-    // latinLang:  "en" | "es" | "fr" | "pt" when the text says so clearly,
-    // else null
-    function latinLang(text) {
+    // latinLang:  "en" | "es" | "fr" | "pt" when the text scores at least
+    // min and beats the others, else null
+    function latinLang(text, min) {
       var score = { en: 0, es: 0, fr: 0, pt: 0 };
       var low = text.toLowerCase();
       (low.match(/\p{L}+/gu) || []).forEach(function (w) {
@@ -137,7 +137,7 @@
         for (var l in m[1]) score[l] += n * m[1][l];
       });
       var order = Object.keys(score).sort(function (a, b) { return score[b] - score[a]; });
-      if (score[order[0]] >= 2 && score[order[0]] > score[order[1]]) return order[0];
+      if (score[order[0]] >= (min || 2) && score[order[0]] > score[order[1]]) return order[0];
       return null;
     }
 
@@ -159,7 +159,7 @@
       }
       var kana = raw.some(function (r) { return r.lang === "ja"; });
       var latin = raw.some(function (r) { return r.lang === "latin"; })
-                ? latinLang(sentence) || ctx.latin : null;
+                ? latinLang(sentence, 1) || ctx.latin : null;
       var out = [];
       raw.forEach(function (r) {
         var lang = r.lang === "han" ? (kana || ctx.ja ? "ja" : "zh")
@@ -194,19 +194,24 @@
         function (m, before, after) {
           return before + (HAN.test(before) && HAN.test(after) ? "" : " ") + after;
         });
-      flat = flat.replace(/([.!?;:])\s+/g, "$1\n\n");   // Latin sentence ends
-      var sentences = flat.match(/[^。！？；!?;؟؛।॥\n]+[。！？；!?;؟؛।॥]*|\n+/g) || [];
-      var kanaCount = (flat.match(new RegExp(KANA.source, "g")) || []).length;
-      var hanCount = (flat.match(new RegExp(HAN.source, "g")) || []).length;
-      var ctx = {
-        ja: kanaCount > 0 && kanaCount * 5 >= hanCount,  // mostly-kanji lines in a Japanese text
-        latin: latinLang(flat) || "en"
-      };
+      var docLatin = latinLang(flat) || "en";
       var out = [];
-      sentences.forEach(function (s) {
-        runs(s, ctx).forEach(function (r) {
-          cut(r).forEach(function (c) {
-            if (/[\p{L}\p{N}]/u.test(c.text)) out.push(c);
+      // each paragraph makes its own guess, so a Japanese paragraph
+      // doesn't turn the Chinese one next to it into Japanese
+      flat.split(/\n{2,}/).forEach(function (para) {
+        var kanaCount = (para.match(new RegExp(KANA.source, "g")) || []).length;
+        var hanCount = (para.match(new RegExp(HAN.source, "g")) || []).length;
+        var ctx = {
+          ja: kanaCount > 0 && kanaCount * 5 >= hanCount,  // mostly-kanji lines in Japanese
+          latin: latinLang(para) || docLatin
+        };
+        para = para.replace(/([.!?;:])\s+/g, "$1\n");     // Latin sentence ends
+        var sentences = para.match(/[^。！？；!?;؟؛।॥\n]+[。！？；!?;؟؛।॥]*/g) || [];
+        sentences.forEach(function (s) {
+          runs(s, ctx).forEach(function (r) {
+            cut(r).forEach(function (c) {
+              if (/[\p{L}\p{N}]/u.test(c.text)) out.push(c);
+            });
           });
         });
       });
