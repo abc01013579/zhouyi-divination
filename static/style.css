@@ -397,16 +397,6 @@ h1 {
   width: 5rem;
 }
 
-.read-settings select {
-  font-size: 0.8rem;
-  padding: 0.25rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  max-width: 9rem;
-}
-
 .read-status {
   margin: 0;
   text-align: center;

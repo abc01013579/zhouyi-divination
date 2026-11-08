@@ -37,14 +37,6 @@
             {{ t.rate_label }} <span id="rate-value">1.0</span>
             <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
           </label>
-          <label>
-            {{ t.zh_voice_label }}
-            <select id="zh-voice"><option value="">{{ t.auto_voice }}</option></select>
-          </label>
-          <label>
-            {{ t.en_voice_label }}
-            <select id="en-voice"><option value="">{{ t.auto_voice }}</option></select>
-          </label>
         </div>
       </div>
 
@@ -65,13 +57,12 @@
     var stopEl = document.getElementById("stop");
     var rateEl = document.getElementById("rate");
     var rateValueEl = document.getElementById("rate-value");
-    var zhVoiceEl = document.getElementById("zh-voice");
-    var enVoiceEl = document.getElementById("en-voice");
     var statusEl = document.getElementById("status");
     var nowEl = document.getElementById("now");
 
     var synth = window.speechSynthesis;
-    var chunks = [];        // [{lang: "zh" | "en", text: "..."}]
+    var chunks = [];        // [{lang: "zh" | "en" | "ja" | ..., text: "..."}]
+    var missing = {};       // languages skipped for want of a voice, this run
     var builtFrom = null;   // the text chunks were made from
     var idx = 0;            // next chunk to read
     var playing = false;
@@ -91,25 +82,92 @@
     function setStatus(s) { statusEl.textContent = s || ""; }
 
     // ---- splitting text into chunks a voice can read ----
+    // ten languages: zh en ja es fr pt ru ar hi bn.  The script tells most
+    // apart; Han is Japanese when kana is around; Latin text is told
+    // apart by its common words.
+    var DANDA = /[।॥]/;                  // । ॥  shared by Hindi and Bengali
+    var KANA = /[぀-ヿㇰ-ㇿｦ-ﾟ]/;
     var HAN = /[　-〿㐀-䶿一-鿿豈-﫿＀-￯]/;
     var LATIN = /[A-Za-zÀ-ɏ]/;
+    var CYRILLIC = /[Ѐ-ӿ]/;
+    var ARABIC = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/;
+    var DEVANAGARI = /[ऀ-ॿ]/;
+    var BENGALI = /[ঀ-৿]/;
     var MAXCHUNK = 180;
 
-    // runs:  split one sentence where it changes between Chinese and English;
-    // digits, spaces and punctuation stay with the run they're in
-    function runs(sentence) {
-      var out = [], cur = null, lead = "";
+    // scriptOf:  what a character is written in; null for digits,
+    // spaces and punctuation, which go with whatever run they're in
+    function scriptOf(ch) {
+      if (DANDA.test(ch)) return null;
+      if (KANA.test(ch)) return "ja";
+      if (HAN.test(ch)) return "han";
+      if (LATIN.test(ch)) return "latin";
+      if (CYRILLIC.test(ch)) return "ru";
+      if (ARABIC.test(ch)) return "ar";
+      if (DEVANAGARI.test(ch)) return "hi";
+      if (BENGALI.test(ch)) return "bn";
+      return null;
+    }
+
+    // common words, enough to tell the four Latin-script languages apart
+    var WORDS = {
+      en: "the and of to is that it with for this was are have you not be by from which they we at or but his her an were has had been would there their what will can",
+      es: "el la los las de del que y en un una es por con para se su al lo como más pero sus le ya este porque esta entre cuando muy sin sobre también hay fue está son",
+      fr: "le la les de des et est une un du que qui en dans pour pas sur au ce il elle avec ne se plus par sont mais nous vous ou où été être cette aux je",
+      pt: "de da das dos que e em um uma é para com não por mais na se como mas ao ele ela também são foi muito pelo pela isso já está ou"
+    };
+    var WORDSET = {};
+    Object.keys(WORDS).forEach(function (l) {
+      WORDSET[l] = {};
+      WORDS[l].split(" ").forEach(function (w) { WORDSET[l][w] = true; });
+    });
+    var MARKS = [[/[ñ¿¡]/g, { es: 3 }], [/[ãõ]/g, { pt: 3 }], [/[œèëïîûù]/g, { fr: 2 }],
+                 [/[çê]/g, { fr: 1, pt: 1 }]];
+
+    // latinLang:  "en" | "es" | "fr" | "pt" when the text says so clearly,
+    // else null
+    function latinLang(text) {
+      var score = { en: 0, es: 0, fr: 0, pt: 0 };
+      var low = text.toLowerCase();
+      (low.match(/\p{L}+/gu) || []).forEach(function (w) {
+        for (var l in score) if (WORDSET[l][w]) score[l]++;
+      });
+      MARKS.forEach(function (m) {
+        var n = (low.match(m[0]) || []).length;
+        for (var l in m[1]) score[l] += n * m[1][l];
+      });
+      var order = Object.keys(score).sort(function (a, b) { return score[b] - score[a]; });
+      if (score[order[0]] >= 2 && score[order[0]] > score[order[1]]) return order[0];
+      return null;
+    }
+
+    // runs:  split one sentence where its language changes;
+    // ctx gives the whole text's guess for Han and Latin when the
+    // sentence alone can't tell
+    function runs(sentence, ctx) {
+      var raw = [], cur = null, lead = "";
       for (var ch of sentence) {
-        var lang = HAN.test(ch) ? "zh" : LATIN.test(ch) ? "en" : null;
-        if (lang === null) {
+        var s = scriptOf(ch);
+        if (s === null) {
           if (cur) cur.text += ch; else lead += ch;
-        } else if (cur && cur.lang === lang) {
+        } else if (cur && cur.lang === s) {
           cur.text += ch;
         } else {
-          cur = { lang: lang, text: (cur ? "" : lead) + ch };
-          out.push(cur);
+          cur = { lang: s, text: (cur ? "" : lead) + ch };
+          raw.push(cur);
         }
       }
+      var kana = raw.some(function (r) { return r.lang === "ja"; });
+      var latin = raw.some(function (r) { return r.lang === "latin"; })
+                ? latinLang(sentence) || ctx.latin : null;
+      var out = [];
+      raw.forEach(function (r) {
+        var lang = r.lang === "han" ? (kana || ctx.ja ? "ja" : "zh")
+                 : r.lang === "latin" ? latin : r.lang;
+        var last = out[out.length - 1];
+        if (last && last.lang === lang) last.text += r.text;
+        else out.push({ lang: lang, text: r.text });
+      });
       return out;
     }
 
@@ -119,7 +177,8 @@
       while (s.length > MAXCHUNK) {
         var head = s.slice(0, MAXCHUNK);
         var at = Math.max(head.lastIndexOf("，"), head.lastIndexOf(","),
-                          head.lastIndexOf("、"), head.lastIndexOf(" "));
+                          head.lastIndexOf("、"), head.lastIndexOf("،"),
+                          head.lastIndexOf(" "));
         if (at < MAXCHUNK / 3) at = MAXCHUNK - 1;
         out.push({ lang: run.lang, text: s.slice(0, at + 1) });
         s = s.slice(at + 1);
@@ -135,11 +194,17 @@
         function (m, before, after) {
           return before + (HAN.test(before) && HAN.test(after) ? "" : " ") + after;
         });
-      flat = flat.replace(/([.!?;:])\s+/g, "$1\n\n");   // English sentence ends
-      var sentences = flat.match(/[^。！？；!?;\n]+[。！？；!?;]*|\n+/g) || [];
+      flat = flat.replace(/([.!?;:])\s+/g, "$1\n\n");   // Latin sentence ends
+      var sentences = flat.match(/[^。！？；!?;؟؛।॥\n]+[。！？；!?;؟؛।॥]*|\n+/g) || [];
+      var kanaCount = (flat.match(new RegExp(KANA.source, "g")) || []).length;
+      var hanCount = (flat.match(new RegExp(HAN.source, "g")) || []).length;
+      var ctx = {
+        ja: kanaCount > 0 && kanaCount * 5 >= hanCount,  // mostly-kanji lines in a Japanese text
+        latin: latinLang(flat) || "en"
+      };
       var out = [];
       sentences.forEach(function (s) {
-        runs(s).forEach(function (r) {
+        runs(s, ctx).forEach(function (r) {
           cut(r).forEach(function (c) {
             if (/[\p{L}\p{N}]/u.test(c.text)) out.push(c);
           });
@@ -148,66 +213,73 @@
       return out;
     }
 
-    // ---- voices ----
-    var PREFER = { zh: ["zh-cn", "zh-tw", "zh-hk"], en: ["en-us", "en-gb"] };
+    // ---- voices: picked automatically, one per language ----
+    // preferred regions first; the first is also the tag used when a
+    // browser lists no voices at all
+    var PREFER = {
+      en: ["en-us", "en-gb", "en-au", "en-ca", "en-in"],
+      zh: ["zh-cn", "zh-tw", "zh-hk"],
+      ja: ["ja-jp"],
+      es: ["es-es", "es-mx", "es-us"],
+      fr: ["fr-fr", "fr-ca"],
+      pt: ["pt-br", "pt-pt"],
+      ru: ["ru-ru"],
+      ar: ["ar-sa", "ar-001", "ar-eg"],
+      hi: ["hi-in"],
+      bn: ["bn-in", "bn-bd"]
+    };
+    // Apple's joke voices, never wanted for reading
+    var NOVELTY = /^(albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|junior|ralph|fred|kathy)\b/i;
+    var GOOD = /premium|enhanced|natural|neural|google|siri/i;
+    var chosen = {};        // lang -> voice, reset when the voice list changes
 
-    function voicesFor(prefix) {
-      return synth.getVoices().filter(function (v) {
-        return v.lang.replace("_", "-").toLowerCase().indexOf(prefix) === 0;
-      });
-    }
+    function tagOf(v) { return v.lang.replace("_", "-").toLowerCase(); }
 
-    // sortedVoices:  voices for "zh" or "en", the preferred regions first
-    function sortedVoices(lang) {
-      return voicesFor(lang).sort(function (a, b) {
-        return rank(a, PREFER[lang]) - rank(b, PREFER[lang]);
-      });
-    }
-
-    function fillVoices(select, lang) {
-      var keep = select.value || load(select.id) || "";
-      while (select.options.length > 1) select.remove(1);
-      var list = sortedVoices(lang);
-      list.forEach(function (v) {
-        var o = document.createElement("option");
-        o.value = v.name;
-        o.textContent = v.name + " (" + v.lang + ")";
-        select.appendChild(o);
-      });
-      if (list.some(function (v) { return v.name === keep; })) select.value = keep;
-    }
-
-    // rank:  lower is better -- the preferred regions first
-    function rank(v, preferred) {
-      var lang = v.lang.replace("_", "-").toLowerCase();
-      var i = preferred.indexOf(lang);
-      return i < 0 ? preferred.length : i;
-    }
-
-    function updateVoices() {
-      fillVoices(zhVoiceEl, "zh");
-      fillVoices(enVoiceEl, "en");
+    // rank:  lower is better -- region first, then quality
+    function rank(v, lang) {
+      var i = PREFER[lang].indexOf(tagOf(v));
+      var s = (i < 0 ? PREFER[lang].length : i) * 10;
+      if (NOVELTY.test(v.name)) s += 1000;
+      if (GOOD.test(v.name)) s -= 4;
+      if (v.default) s -= 2;
+      return s;
     }
 
     function voiceFor(lang) {
-      var select = lang === "zh" ? zhVoiceEl : enVoiceEl;
-      var all = synth.getVoices();
-      for (var i = 0; i < all.length; i++)
-        if (all[i].name === select.value) return all[i];
-      return sortedVoices(lang)[0] || null;
+      if (!(lang in chosen)) {
+        var list = synth.getVoices().filter(function (v) {
+          var t = tagOf(v);
+          return t === lang || t.indexOf(lang + "-") === 0;
+        });
+        list.sort(function (a, b) { return rank(a, lang) - rank(b, lang); });
+        chosen[lang] = list[0] || null;
+      }
+      return chosen[lang];
+    }
+
+    function langName(code) {
+      try { return new Intl.DisplayNames([T.html_lang], { type: "language" }).of(code); }
+      catch (e) { return code; }
     }
 
     // ---- playing ----
     function speakNext(myRun) {
       if (myRun !== run || !playing) return;
       if (idx >= chunks.length) {
-        finish(T.done);
+        var gone = Object.keys(missing).map(langName);
+        finish(T.done + (gone.length ? " " + fill(T.no_voice, { langs: gone.join(", ") }) : ""));
         return;
       }
       var c = chunks[idx];
-      var u = new SpeechSynthesisUtterance(c.text);
       var v = voiceFor(c.lang);
-      u.lang = v ? v.lang : (c.lang === "zh" ? "zh-CN" : "en-US");
+      if (!v && synth.getVoices().length > 0) {
+        missing[c.lang] = true;     // this device has no voice for it: skip
+        idx++;
+        speakNext(myRun);
+        return;
+      }
+      var u = new SpeechSynthesisUtterance(c.text);
+      u.lang = v ? v.lang : PREFER[c.lang][0];
       if (v) u.voice = v;
       u.rate = Number(rateEl.value);
       u.onend = function () {
@@ -244,6 +316,7 @@
       }
       if (chunks.length === 0) { setStatus(T.nothing); return; }
       if (idx >= chunks.length) idx = 0;
+      if (idx === 0) missing = {};
       playing = true;
       run++;
       if (synth.speaking || synth.pending)
@@ -286,9 +359,6 @@
     rateEl.addEventListener("input", function () {
       rateValueEl.textContent = Number(rateEl.value).toFixed(1);
       save("rate", rateEl.value);
-    });
-    [zhVoiceEl, enVoiceEl].forEach(function (s) {
-      s.addEventListener("change", function () { save(s.id, s.value); });
     });
 
     // ---- clear ----
@@ -361,8 +431,8 @@
     });
 
     if (synth) {
-      updateVoices();
-      if ("onvoiceschanged" in synth) synth.onvoiceschanged = updateVoices;
+      if ("onvoiceschanged" in synth)
+        synth.onvoiceschanged = function () { chosen = {}; };
     } else {
       setStatus(T.no_speech);
       playEl.disabled = true;
