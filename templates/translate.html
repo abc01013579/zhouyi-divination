@@ -27,32 +27,99 @@
       </div>
 
       <p id="status" class="read-status"></p>
+      <div id="out" class="translate-out" hidden></div>
+      <div id="out-tools" class="read-tools" hidden>
+        <button type="button" id="copy">{{ t.copy }}</button>
+      </div>
     </section>
   </main>
 
   <script>
   (function () {
     var T = {{ t | tojson }};
-    var MAX_URL = 12000;  // stay well under Google's request-URL limit
+    var API = "https://translate.googleapis.com/translate_a/single?client=gtx&dt=t";
+    var CHUNK = 1500;  // characters per request, keeps each URL short
     var textEl = document.getElementById("text");
     var statusEl = document.getElementById("status");
+    var outEl = document.getElementById("out");
+    var outTools = document.getElementById("out-tools");
+    var busy = false;
+
+    function googleUrl(text, sl, tl) {
+      return "https://translate.google.com/?sl=" + sl + "&tl=" + tl +
+             "&op=translate&text=" + encodeURIComponent(text.slice(0, 4000));
+    }
+
+    // Split on paragraph/line breaks, then on sentence ends, so no chunk exceeds CHUNK.
+    function chunks(text) {
+      var parts = text.split(/(\n+)/), out = [], cur = "";
+      parts.forEach(function (p) {
+        while (p.length > CHUNK) {
+          var cut = Math.max(p.lastIndexOf(". ", CHUNK), p.lastIndexOf("。", CHUNK));
+          cut = cut > 0 ? cut + 1 : CHUNK;
+          if (cur) { out.push(cur); cur = ""; }
+          out.push(p.slice(0, cut)); p = p.slice(cut);
+        }
+        if ((cur + p).length > CHUNK) { out.push(cur); cur = ""; }
+        cur += p;
+      });
+      if (cur) out.push(cur);
+      return out;
+    }
+
+    function translateChunk(text, sl, tl) {
+      if (!text.trim()) return Promise.resolve(text);
+      var url = API + "&sl=" + sl + "&tl=" + tl + "&q=" + encodeURIComponent(text);
+      return fetch(url).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      }).then(function (data) {
+        return data[0].map(function (seg) { return seg[0]; }).join("");
+      });
+    }
+
+    function fail(text, sl, tl) {
+      statusEl.innerHTML = "";
+      statusEl.appendChild(document.createTextNode(T.failed + " "));
+      var a = document.createElement("a");
+      a.href = googleUrl(text, sl, tl); a.target = "_blank"; a.rel = "noopener";
+      a.textContent = T.open_google;
+      statusEl.appendChild(a);
+    }
 
     document.querySelectorAll("button[data-sl]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var text = textEl.value.trim();
         if (!text) { statusEl.textContent = T.nothing; return; }
-        var url = "https://translate.google.com/?sl=" + btn.dataset.sl +
-                  "&tl=" + btn.dataset.tl + "&op=translate&text=" +
-                  encodeURIComponent(text);
-        if (url.length > MAX_URL) { statusEl.textContent = T.too_long; return; }
-        statusEl.textContent = "";
-        window.open(url, "_blank", "noopener");
+        if (busy) return;
+        busy = true;
+        var sl = btn.dataset.sl, tl = btn.dataset.tl;
+        var list = chunks(text), done = [];
+        outEl.hidden = true; outTools.hidden = true;
+        statusEl.textContent = T.working;
+        list.reduce(function (p, c) {
+          return p.then(function () {
+            return translateChunk(c, sl, tl).then(function (r) { done.push(r); });
+          });
+        }, Promise.resolve()).then(function () {
+          outEl.textContent = done.join("");
+          outEl.hidden = false; outTools.hidden = false;
+          statusEl.textContent = "";
+        }).catch(function () { fail(text, sl, tl); })
+          .then(function () { busy = false; });
+      });
+    });
+
+    document.getElementById("copy").addEventListener("click", function () {
+      navigator.clipboard.writeText(outEl.textContent).then(function () {
+        statusEl.textContent = T.copied;
       });
     });
 
     document.getElementById("clear").addEventListener("click", function () {
       textEl.value = "";
       statusEl.textContent = "";
+      outEl.textContent = ""; outEl.hidden = true; outTools.hidden = true;
       textEl.focus();
     });
   })();

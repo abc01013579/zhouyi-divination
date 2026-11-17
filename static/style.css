@@ -488,3 +488,17 @@ h1 {
 .translate-text {
   height: 40vh;
 }
+
+.translate-out {
+  white-space: pre-wrap;
+  font-size: 1rem;
+  line-height: 1.6;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.read-card [hidden] {
+  display: none;
+}
