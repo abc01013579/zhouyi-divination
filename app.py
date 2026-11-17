@@ -5,6 +5,22 @@ from yijing_core import cast_reading
 
 app = Flask(__name__)
 
+# Same security headers Cloudflare's "Add security headers" managed transform
+# sets on tcm./www., which don't reach the apex (shuiming.cc) for some reason.
+SECURITY_HEADERS = {
+    "Strict-Transport-Security": "max-age=15552000",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Referrer-Policy": "same-origin",
+}
+
+
+@app.after_request
+def add_security_headers(resp):
+    for k, v in SECURITY_HEADERS.items():
+        resp.headers.setdefault(k, v)
+    return resp
+
 VALID_YAO = (6, 7, 8, 9)
 
 UI_STRINGS = {
