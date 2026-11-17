@@ -53,6 +53,7 @@ UI_STRINGS = {
         "balance_plate_link_label": "Shopping List",
         "dca_link_label": "复利计算器",
         "read_link_label": "朗读",
+        "translate_link_label": "翻译",
     },
     "en": {
         "html_lang": "en",
@@ -83,6 +84,7 @@ UI_STRINGS = {
         "balance_plate_link_label": "Shopping List",
         "dca_link_label": "DCA Calculator",
         "read_link_label": "Read Aloud",
+        "translate_link_label": "Translate",
     },
 }
 
@@ -176,6 +178,39 @@ READ_STRINGS = {
     },
 }
 
+TRANSLATE_STRINGS = {
+    "zh": {
+        "html_lang": "zh",
+        "title": "翻译",
+        "heading": "翻译",
+        "hint": "粘贴文字，选择方向，在 Google 翻译中打开译文。文字会发送给 Google，本站不保存。",
+        "text_placeholder": "在此粘贴文字……",
+        "en_to_zh": "英 → 中",
+        "zh_to_en": "中 → 英",
+        "clear": "清空",
+        "nothing": "请先粘贴文字。",
+        "too_long": "文字太长，请分段翻译。",
+        "lang_switch_label": "English",
+        "lang_switch_target": "en",
+        "index_link_label": "周易摇卦",
+    },
+    "en": {
+        "html_lang": "en",
+        "title": "Translate",
+        "heading": "Translate",
+        "hint": "Paste text, pick a direction, and the translation opens in Google Translate. The text is sent to Google; this site keeps nothing.",
+        "text_placeholder": "Paste text here…",
+        "en_to_zh": "English → 中文",
+        "zh_to_en": "中文 → English",
+        "clear": "Clear",
+        "nothing": "Paste some text first.",
+        "too_long": "Too long. Please translate it in parts.",
+        "lang_switch_label": "中文",
+        "lang_switch_target": "zh",
+        "index_link_label": "Zhouyi Divination",
+    },
+}
+
 def resolve_lang(request):
     lang = request.values.get("lang", "zh")
     return lang if lang in UI_STRINGS else "zh"
@@ -246,6 +281,12 @@ def dca_page():
 def read_page():
     lang = resolve_lang(request)
     return render_template("read.html", lang=lang, t=READ_STRINGS[lang])
+
+
+@app.route("/translate")
+def translate_page():
+    lang = resolve_lang(request)
+    return render_template("translate.html", lang=lang, t=TRANSLATE_STRINGS[lang])
 
 
 if __name__ == "__main__":

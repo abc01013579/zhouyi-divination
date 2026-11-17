@@ -484,3 +484,7 @@ h1 {
     color: #000;
   }
 }
+
+.translate-text {
+  height: 40vh;
+}

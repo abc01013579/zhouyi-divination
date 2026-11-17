@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="{{ t.html_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ t.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon-32.png') }}" sizes="32x32">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+</head>
+<body>
+  <main class="wide">
+    <div class="lang-switch">
+      <a href="{{ url_for('index') }}?lang={{ lang }}">{{ t.index_link_label }}</a>
+      <a href="?lang={{ t.lang_switch_target }}">{{ t.lang_switch_label }}</a>
+    </div>
+    <h1>{{ t.heading }}</h1>
+    <p class="hint">{{ t.hint }}</p>
+
+    <section class="read-card">
+      <textarea id="text" class="read-text translate-text" placeholder="{{ t.text_placeholder }}"></textarea>
+
+      <div class="read-controls">
+        <button type="button" data-sl="en" data-tl="zh-CN">{{ t.en_to_zh }}</button>
+        <button type="button" data-sl="zh-CN" data-tl="en">{{ t.zh_to_en }}</button>
+        <button type="button" id="clear" class="secondary">{{ t.clear }}</button>
+      </div>
+
+      <p id="status" class="read-status"></p>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    var T = {{ t | tojson }};
+    var MAX_URL = 12000;  // stay well under Google's request-URL limit
+    var textEl = document.getElementById("text");
+    var statusEl = document.getElementById("status");
+
+    document.querySelectorAll("button[data-sl]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var text = textEl.value.trim();
+        if (!text) { statusEl.textContent = T.nothing; return; }
+        var url = "https://translate.google.com/?sl=" + btn.dataset.sl +
+                  "&tl=" + btn.dataset.tl + "&op=translate&text=" +
+                  encodeURIComponent(text);
+        if (url.length > MAX_URL) { statusEl.textContent = T.too_long; return; }
+        statusEl.textContent = "";
+        window.open(url, "_blank", "noopener");
+      });
+    });
+
+    document.getElementById("clear").addEventListener("click", function () {
+      textEl.value = "";
+      statusEl.textContent = "";
+      textEl.focus();
+    });
+  })();
+  </script>
+</body>
+</html>
