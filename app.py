@@ -54,6 +54,7 @@ UI_STRINGS = {
         "dca_link_label": "复利计算器",
         "read_link_label": "朗读",
         "translate_link_label": "翻译",
+        "webp_link_label": "转 WebP",
     },
     "en": {
         "html_lang": "en",
@@ -85,6 +86,7 @@ UI_STRINGS = {
         "dca_link_label": "DCA Calculator",
         "read_link_label": "Read Aloud",
         "translate_link_label": "Translate",
+        "webp_link_label": "WebP",
     },
 }
 
@@ -219,6 +221,47 @@ TRANSLATE_STRINGS = {
     },
 }
 
+WEBP_STRINGS = {
+    "zh": {
+        "html_lang": "zh",
+        "title": "转 WebP",
+        "heading": "转 WebP",
+        "hint": "选择照片（可多张），转成 WebP 并缩小尺寸，然后下载。照片只在本机处理，不上传。",
+        "file_label": "选择照片",
+        "width_label": "最大宽度",
+        "original": "原尺寸",
+        "quality_label": "质量",
+        "working": "转换中：{n} / {total}",
+        "loading_encoder": "正在载入编码器……",
+        "done": "完成 {n} 张。",
+        "failed": "无法转换：{name}",
+        "download": "下载",
+        "clear": "清空",
+        "lang_switch_label": "English",
+        "lang_switch_target": "en",
+        "index_link_label": "周易摇卦",
+    },
+    "en": {
+        "html_lang": "en",
+        "title": "WebP Converter",
+        "heading": "WebP Converter",
+        "hint": "Pick photos (several at once is fine). They are resized, converted to WebP, and ready to download. Everything stays on this device; nothing is uploaded.",
+        "file_label": "Choose photos",
+        "width_label": "Max width",
+        "original": "Original",
+        "quality_label": "Quality",
+        "working": "Converting {n} / {total}",
+        "loading_encoder": "Loading encoder…",
+        "done": "Done: {n} photo(s).",
+        "failed": "Couldn't convert: {name}",
+        "download": "Download",
+        "clear": "Clear",
+        "lang_switch_label": "中文",
+        "lang_switch_target": "zh",
+        "index_link_label": "Zhouyi Divination",
+    },
+}
+
 def resolve_lang(request):
     lang = request.values.get("lang", "zh")
     return lang if lang in UI_STRINGS else "zh"
@@ -295,6 +338,12 @@ def read_page():
 def translate_page():
     lang = resolve_lang(request)
     return render_template("translate.html", lang=lang, t=TRANSLATE_STRINGS[lang])
+
+
+@app.route("/webp")
+def webp_page():
+    lang = resolve_lang(request)
+    return render_template("webp.html", lang=lang, t=WEBP_STRINGS[lang])
 
 
 if __name__ == "__main__":

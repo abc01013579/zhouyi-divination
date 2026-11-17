@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="{{ t.html_lang }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ t.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon-32.png') }}" sizes="32x32">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+</head>
+<body>
+  <main class="wide">
+    <div class="lang-switch">
+      <a href="{{ url_for('index') }}?lang={{ lang }}">{{ t.index_link_label }}</a>
+      <a href="?lang={{ t.lang_switch_target }}">{{ t.lang_switch_label }}</a>
+    </div>
+    <h1>{{ t.heading }}</h1>
+    <p class="hint">{{ t.hint }}</p>
+
+    <section class="read-card">
+      <div class="read-tools">
+        <label class="read-file">
+          {{ t.file_label }}
+          <input type="file" id="file" accept="image/*" multiple>
+        </label>
+        <button type="button" id="clear">{{ t.clear }}</button>
+      </div>
+
+      <div class="read-settings webp-settings">
+        <label>
+          {{ t.width_label }}
+          <select id="width">
+            <option value="1000">1000 px</option>
+            <option value="1400" selected>1400 px</option>
+            <option value="2000">2000 px</option>
+            <option value="0">{{ t.original }}</option>
+          </select>
+        </label>
+        <label>
+          {{ t.quality_label }} <span id="quality-value">80</span>
+          <input type="range" id="quality" min="50" max="95" step="5" value="80">
+        </label>
+      </div>
+
+      <p id="status" class="read-status"></p>
+      <ul id="results" class="webp-results"></ul>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    var T = {{ t | tojson }};
+    // WASM WebP encoder for browsers whose canvas can't make WebP (Safari / iPhone).
+    var ENCODER = "https://cdn.jsdelivr.net/npm/@jsquash/webp@1.5.0/codec/enc/webp_enc.js";
+    var WASM_OPTIONS = {
+      quality: 80, target_size: 0, target_PSNR: 0, method: 4, sns_strength: 50,
+      filter_strength: 60, filter_sharpness: 0, filter_type: 1, partitions: 0,
+      segments: 4, pass: 1, show_compressed: 0, preprocessing: 0, autofilter: 0,
+      partition_limit: 0, alpha_compression: 1, alpha_filtering: 1, alpha_quality: 100,
+      lossless: 0, exact: 0, image_hint: 0, emulate_jpeg_size: 0, thread_level: 0,
+      low_memory: 0, near_lossless: 100, use_delta_palette: 0, use_sharp_yuv: 0
+    };
+
+    var fileEl = document.getElementById("file");
+    var widthEl = document.getElementById("width");
+    var qualityEl = document.getElementById("quality");
+    var qualityValueEl = document.getElementById("quality-value");
+    var statusEl = document.getElementById("status");
+    var resultsEl = document.getElementById("results");
+    var urls = [];
+    var encoder = null;
+
+    function fmt(s, vals) {
+      return s.replace(/\{(\w+)\}/g, function (_, k) { return vals[k]; });
+    }
+
+    function size(bytes) {
+      return bytes < 1024 * 1024 ? Math.round(bytes / 1024) + " KB"
+                                 : (bytes / 1024 / 1024).toFixed(1) + " MB";
+    }
+
+    function loadImage(file) {
+      return new Promise(function (resolve, reject) {
+        var url = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function () { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = function () { URL.revokeObjectURL(url); reject(); };
+        img.src = url;
+      });
+    }
+
+    function nativeWebp(canvas, quality) {
+      return new Promise(function (resolve) {
+        canvas.toBlob(function (blob) {
+          resolve(blob && blob.type === "image/webp" ? blob : null);
+        }, "image/webp", quality / 100);
+      });
+    }
+
+    function wasmWebp(canvas, quality) {
+      if (!encoder) {
+        statusEl.textContent = T.loading_encoder;
+        encoder = import(ENCODER).then(function (m) {
+          return m.default({ noInitialRun: true });
+        });
+      }
+      return encoder.then(function (mod) {
+        var ctx = canvas.getContext("2d");
+        var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var opts = Object.assign({}, WASM_OPTIONS, { quality: quality });
+        var out = mod.encode(data.data, canvas.width, canvas.height, opts);
+        if (!out) throw new Error("encode");
+        return new Blob([out], { type: "image/webp" });
+      });
+    }
+
+    function convert(file, maxWidth, quality) {
+      return loadImage(file).then(function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (maxWidth && w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+        var canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        return nativeWebp(canvas, quality).then(function (blob) {
+          return blob || wasmWebp(canvas, quality);
+        }).then(function (blob) {
+          return { blob: blob, w: w, h: h };
+        });
+      });
+    }
+
+    function show(file, r) {
+      var url = URL.createObjectURL(r.blob);
+      urls.push(url);
+      var name = file.name.replace(/\.[^.]+$/, "") + ".webp";
+      var li = document.createElement("li");
+      var img = document.createElement("img");
+      img.src = url; img.alt = name;
+      var info = document.createElement("div");
+      info.className = "webp-info";
+      var title = document.createElement("strong");
+      title.textContent = name;
+      var meta = document.createElement("span");
+      meta.textContent = r.w + "×" + r.h + " · " + size(file.size) + " → " + size(r.blob.size);
+      var a = document.createElement("a");
+      a.href = url; a.download = name; a.textContent = T.download;
+      info.appendChild(title); info.appendChild(meta); info.appendChild(a);
+      li.appendChild(img); li.appendChild(info);
+      resultsEl.appendChild(li);
+    }
+
+    function clearResults() {
+      urls.forEach(URL.revokeObjectURL);
+      urls = [];
+      resultsEl.innerHTML = "";
+      statusEl.textContent = "";
+    }
+
+    qualityEl.addEventListener("input", function () {
+      qualityValueEl.textContent = qualityEl.value;
+    });
+
+    fileEl.addEventListener("change", function () {
+      var files = Array.prototype.slice.call(fileEl.files);
+      if (!files.length) return;
+      clearResults();
+      var maxWidth = parseInt(widthEl.value, 10);
+      var quality = parseInt(qualityEl.value, 10);
+      var ok = 0, failed = [];
+      files.reduce(function (p, file, i) {
+        return p.then(function () {
+          statusEl.textContent = fmt(T.working, { n: i + 1, total: files.length });
+          return convert(file, maxWidth, quality).then(function (r) {
+            show(file, r); ok++;
+          }, function () { failed.push(file.name); });
+        });
+      }, Promise.resolve()).then(function () {
+        var msg = fmt(T.done, { n: ok });
+        failed.forEach(function (n) { msg += " " + fmt(T.failed, { name: n }); });
+        statusEl.textContent = msg;
+        fileEl.value = "";
+      });
+    });
+
+    document.getElementById("clear").addEventListener("click", function () {
+      clearResults();
+      fileEl.value = "";
+    });
+  })();
+  </script>
+</body>
+</html>
